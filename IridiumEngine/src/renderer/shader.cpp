@@ -60,7 +60,6 @@ std::vector<uint32_t> Iridium::shader_compiler::compileShader(const std::vector<
 	glslang::EShClient client = glslang::EShClientVulkan;
 
 	glslang::TShader shader(glslStage);
-	//shader.setStrings(shaderSourcesRaw.data(), static_cast<int>(shaderSourcesRaw.size()));
 	shader.setStringsWithLengths(shaderSourcesRaw.data(), shaderSourcesLen.data(), static_cast<int>(shaderSourcesRaw.size()));
 	shader.setEnvInput(glslang::EShSourceGlsl, glslStage, client, 450);
 	shader.setEnvClient(client, glslang::EShTargetVulkan_1_0);
@@ -76,7 +75,7 @@ std::vector<uint32_t> Iridium::shader_compiler::compileShader(const std::vector<
 	std::vector<uint32_t> spirv{};
 	glslang::TIntermediate* intermediate = program.getIntermediate(glslStage);
 #ifdef _MSC_VER
-	glslang::GlslangToSpv(*intermediate, spirv); //Other version causes a crash on msvc, seems to be an issue with glslang?
+	glslang::GlslangToSpv(*intermediate, spirv); //Other version causes a crash on msvc, seems to be an issue with glslang.
 #else
 	glslang::SpvOptions options{
 		.generateDebugInfo = true,
