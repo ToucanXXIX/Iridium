@@ -75,7 +75,6 @@ private:
 	enum constants {
 		MAX_FRAMES_IN_FLIGHT = 2
 	};
-	using enum constants;
 
 	GLFWwindow* m_window;
 
@@ -294,7 +293,7 @@ private:
 	}
 
 	void createGraphicsPipeline() {
-		auto vertexShader = 
+		std::string vertexShader = 
 		R"(
 		#version 450
 
@@ -316,11 +315,10 @@ private:
 			gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
 			fragColor = colors[gl_VertexIndex];
 		}
-		)";
-
+		)" "\0";
 		auto compiledVertexShader = m_shaderCompiler.compileShader({vertexShader}, ir::shader_type::vertex);
 
-		auto fragmentShader = 
+		std::string fragmentShader = 
 		R"(
 		#version 450
 
@@ -331,7 +329,7 @@ private:
 		void main() {
 			outColor = vec4(fragColor, 1.0);
 		}
-		)";
+		)"  "\0";
 
 		auto compiledFragmentShader = m_shaderCompiler.compileShader({fragmentShader}, ir::shader_type::fragment);
 

@@ -57,4 +57,7 @@ target_link_libraries(IridiumEngine PRIVATE
 	glm::glm
 )
 
-target_compile_options(IridiumEngine PRIVATE "-Wextra" "-Wall" "-Werror" "-Wpedantic" "-Wno-gnu-zero-variadic-macro-arguments")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	target_compile_options(IridiumEngine PRIVATE "-Wextra" "-Wall" "-Werror" "-Wpedantic" "-Wno-gnu-zero-variadic-macro-arguments")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+endif()
