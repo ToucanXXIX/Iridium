@@ -23,6 +23,7 @@ std::string_view Iridium::shader_type::str() const {
 		case Iridium::shader_type::geometry: return "geometry";
 		case Iridium::shader_type::fragment: return "fragment";
 		case Iridium::shader_type::compute: return "compute";
+		default: return "none";
 	}
 }
 
@@ -49,18 +50,22 @@ Iridium::shader_compiler::~shader_compiler() {
 
 std::vector<uint32_t> Iridium::shader_compiler::compileShader(const std::vector<std::string>& shaderSources, shader_type stage) {
 	std::vector<const char*> shaderSourcesRaw(shaderSources.size());
-	for(size_t iterator = 0; iterator < shaderSources.size(); iterator++)
+	std::vector<int> shaderSourcesLen(shaderSources.size());
+	for(size_t iterator = 0; iterator < shaderSources.size(); iterator++) {
 		shaderSourcesRaw[iterator] = shaderSources[iterator].c_str();
+		shaderSourcesLen[iterator] = shaderSources[iterator].length();
+	}
 
 	EShLanguage glslStage = shaderTypeToEShLanguage(stage);
 	glslang::EShClient client = glslang::EShClientVulkan;
 
 	glslang::TShader shader(glslStage);
-	shader.setStrings(shaderSourcesRaw.data(), shaderSourcesRaw.size());
-	shader.setEnvInput(glslang::EShSourceGlsl, glslStage, client, 100);
+	//shader.setStrings(shaderSourcesRaw.data(), static_cast<int>(shaderSourcesRaw.size()));
+	shader.setStringsWithLengths(shaderSourcesRaw.data(), shaderSourcesLen.data(), static_cast<int>(shaderSourcesRaw.size()));
+	shader.setEnvInput(glslang::EShSourceGlsl, glslStage, client, 450);
 	shader.setEnvClient(client, glslang::EShTargetVulkan_1_0);
 	shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
-	if(!shader.parse(GetDefaultResources(), 100, false, EShMsgDefault))
+	if(!shader.parse(GetDefaultResources(), 450, false, EShMsgDefault))
 		throw std::runtime_error(std::string("shader parsing failed: ") + shader.getInfoLog());
 
 	glslang::TProgram program;
@@ -68,10 +73,20 @@ std::vector<uint32_t> Iridium::shader_compiler::compileShader(const std::vector<
 	if(!program.link(EShMsgDefault))
 		throw std::runtime_error(std::string("shader program linking failed: ") + program.getInfoLog());
 
-	std::vector<uint32_t> spirv;
-	glslang::SpvOptions options{};
-	options.optimizeSize = true;
-	glslang::GlslangToSpv(*program.getIntermediate(glslStage), spirv, &options);
+	std::vector<uint32_t> spirv{};
+	glslang::TIntermediate* intermediate = program.getIntermediate(glslStage);
+#ifdef _MSC_VER
+	glslang::GlslangToSpv(*intermediate, spirv); //Other version causes a crash on msvc, seems to be an issue with glslang?
+#else
+	glslang::SpvOptions options{
+		.generateDebugInfo = true,
+		.stripDebugInfo = false,
+		.optimizeSize = true
+	};
+	spv::SpvBuildLogger logger;
+	glslang::GlslangToSpv(*intermediate, spirv, &logger, &options);
+#endif // 0
+
 
 	return spirv;
 }

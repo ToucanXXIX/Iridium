@@ -15,7 +15,6 @@ namespace Iridium {
 			fragment,
 			compute
 		};
-		using enum underlying_enum;
 
 		underlying_enum value = none;
 
