@@ -76,26 +76,26 @@ private:
 		MAX_FRAMES_IN_FLIGHT = 2
 	};
 
-	GLFWwindow* m_window;
+	GLFWwindow* m_window = nullptr;
 
-	VkInstance m_instance;
-	VkDebugUtilsMessengerEXT m_debugMessenger;
-	VkPhysicalDevice m_physicalDevice;
-	VkDevice m_device;
-	VkQueue m_graphicsQueue;
-	VkQueue m_computeQueue;
-	VkQueue m_presentQueue;
-	VkSurfaceKHR m_surface;
-	VkSwapchainKHR m_swapchain;
-	std::vector<VkImage> m_swapchainImages;
-	VkFormat m_swapChainImageFormat;
-	VkExtent2D m_swapChainExtent;
-	std::vector<VkImageView> m_swapchainImageViews;
-	VkRenderPass m_renderPass;
-	VkPipelineLayout m_pipelineLayout;
-	VkPipeline m_graphicsPipeline;
-	std::vector<VkFramebuffer> m_swapchainFrameBuffers;
-	VkCommandPool m_commandPool;
+	VkInstance m_instance = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
+	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+	VkDevice m_device = VK_NULL_HANDLE;
+	VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+	VkQueue m_computeQueue = VK_NULL_HANDLE;
+	VkQueue m_presentQueue = VK_NULL_HANDLE;
+	VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+	VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
+	std::vector<VkImage> m_swapchainImages{};
+	VkFormat m_swapChainImageFormat{};
+	VkExtent2D m_swapChainExtent{};
+	std::vector<VkImageView> m_swapchainImageViews{};
+	VkRenderPass m_renderPass = VK_NULL_HANDLE;
+	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+	std::vector<VkFramebuffer> m_swapchainFrameBuffers{};
+	VkCommandPool m_commandPool = VK_NULL_HANDLE;
 	
 	//VkCommandBuffer m_commandBuffer;
 	//VkSemaphore m_imageAvailableSemaphore;
@@ -103,10 +103,10 @@ private:
 	//VkFence m_inFlightFence;
 
 	uint32_t m_currentFrame = 0;
-	VkCommandBuffer m_commandBuffers[MAX_FRAMES_IN_FLIGHT];
-	VkSemaphore m_imageAvailableSemaphores[MAX_FRAMES_IN_FLIGHT];
-	VkSemaphore m_renderFinishedSemaphores[MAX_FRAMES_IN_FLIGHT];
-	VkFence m_inFlightFences[MAX_FRAMES_IN_FLIGHT];
+	VkCommandBuffer m_commandBuffers[MAX_FRAMES_IN_FLIGHT]{};
+	VkSemaphore m_imageAvailableSemaphores[MAX_FRAMES_IN_FLIGHT]{};
+	VkSemaphore m_renderFinishedSemaphores[MAX_FRAMES_IN_FLIGHT]{};
+	VkFence m_inFlightFences[MAX_FRAMES_IN_FLIGHT]{};
 	bool m_framebufferResized = false;
 
 	ir::shader_compiler m_shaderCompiler;
@@ -130,14 +130,14 @@ private:
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
 		createInfo.enabledLayerCount = 0;
-		createInfo.enabledExtensionCount = extensions.size();
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
 		auto& validationLayers = ir::getValidationLayers();
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 		if constexpr(USE_VALIDATION_LAYERS) {
 			ir::populateVkDeugUtilsMessengerCreateInfoEXT(debugCreateInfo);
-			createInfo.enabledLayerCount = validationLayers.size();
+			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
 			createInfo.pNext = &debugCreateInfo;
 		}
@@ -181,6 +181,7 @@ private:
 	void createSyncObjects() {
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
 		VkFenceCreateInfo fenceInfo{};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -383,7 +384,7 @@ private:
 
 		VkPipelineDynamicStateCreateInfo dynamicState{};
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.dynamicStateCount = dynamicStates.size();
+		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicState.pDynamicStates = dynamicStates.data();
 
 		VkPipelineViewportStateCreateInfo viewportState{};
@@ -630,13 +631,13 @@ private:
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
-		createInfo.queueCreateInfoCount = queueCreateInfos.size();
+		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 		createInfo.pEnabledFeatures = &deviceFeatures;
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-		createInfo.enabledExtensionCount = deviceExtensions.size();
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		if constexpr(USE_VALIDATION_LAYERS) {
 			auto& validationLayers = ir::getValidationLayers();
-			createInfo.enabledLayerCount = validationLayers.size();
+			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
 		} else {
 			createInfo.enabledLayerCount = 0;
