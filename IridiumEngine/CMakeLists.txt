@@ -23,7 +23,7 @@ target_compile_definitions(IridiumEngine PUBLIC
 
 find_package(Vulkan REQUIRED COMPONENTS SPIRV-Tools)
 
-add_subdirectory(./dependencies/glfw-3.4)
+#add_subdirectory(./dependencies/glfw-3.4)
 
 FetchContent_Declare(
 	glslang
@@ -43,6 +43,13 @@ FetchContent_Declare(
 	GIT_TAG 2d4c4b4dd31fde06cfffad7915c2b3006402322f
 )
 FetchContent_MakeAvailable(glm)
+
+FetchContent_Declare(
+	glfw
+	GIT_REPOSITORY https://github.com/glfw/glfw.git
+	GIT_TAG master
+)
+FetchContent_MakeAvailable(glfw)
 
 target_link_libraries(IridiumEngine PRIVATE
 #Vulkan

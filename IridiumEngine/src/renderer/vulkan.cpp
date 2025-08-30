@@ -1,4 +1,5 @@
 #include "vulkan.hpp"
+
 #include <algorithm>
 #include <cstdint>
 #include <set>
@@ -7,7 +8,6 @@
 #include <vector>
 #include <print>
 #include <vulkan/vulkan_core.h>
-
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
