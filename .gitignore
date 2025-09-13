@@ -1,2 +1,4 @@
 builds/
 .vs/
+.cache/
+compile_commands.json

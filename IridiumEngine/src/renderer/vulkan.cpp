@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <print>
 #include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN

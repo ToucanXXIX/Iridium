@@ -52,6 +52,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glfw)
 
 target_link_libraries(IridiumEngine PRIVATE
+	glfw
+	glm::glm
 #Vulkan
 	Vulkan::Vulkan
 	Vulkan::SPIRV-Tools
@@ -59,9 +61,6 @@ target_link_libraries(IridiumEngine PRIVATE
 	glslang
 	SPIRV
     glslang-default-resource-limits
-	
-	glfw
-	glm::glm
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
