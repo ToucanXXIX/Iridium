@@ -15,7 +15,7 @@ Iridium::shader_type& Iridium::shader_type::operator=(Iridium::shader_type::unde
 	return *this;
 }
 
-std::string_view Iridium::shader_type::str() const {
+const char* Iridium::shader_type::str() const {
 	switch(value) {
 		case Iridium::shader_type::none: return "none"; 
 		case Iridium::shader_type::vertex: return "vertex";

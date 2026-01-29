@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -13,19 +12,244 @@
 
 #include "../log.hpp"
 
-Iridium::Renderer::renderer_error::renderer_error(const std::string& what) : std::runtime_error(what) {};
+namespace IrV = Iridium::Vulkan;
+namespace IrR = Iridium::Renderer;
 
+IrR::renderer_error::renderer_error(const std::string& what) : std::runtime_error(what) {};
+
+//NEW
+
+//Constants
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
-const std::vector<const char*>& Iridium::getValidationLayers() {
-	return validationLayers;
-}
-
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+
+//Lazy loaded funcs
+VkResult IrV::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pMessenger) {
+	static auto loadedFunc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	if(loadedFunc) {
+		return loadedFunc(instance, pCreateInfo, pAllocator, pMessenger);
+	} else {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+
+}
+
+void IrV::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) {
+	static auto loadedFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+			instance,
+			"vkDestroyDebugUtilsMessengerEXT");
+		if(loadedFunc)
+			loadedFunc(instance, debugMessenger, pAllocator);
+}
+
+//Queue families
+
+void IrV::queue_family_indices::setFamily(IrV::queue_family_indices::family_type family, uint32_t index) {
+	families[family] = index;
+	presentFamilies = presentFamilies | (1 << family);
+}
+
+bool IrV::queue_family_indices::isFamilyPresent(IrV::queue_family_indices::family_type family) const {
+	return ((presentFamilies & (1 << family)) != 0);
+}
+
+bool IrV::queue_family_indices::isComplete() const {
+	bool ret = true;
+	ret = ret && isFamilyPresent(graphics);
+	ret = ret && isFamilyPresent(compute);
+	ret = ret && isFamilyPresent(present);
+	return ret;
+}
+
+bool IrV::queue_family_indices::isOneIndex() const {
+	return (families[graphics] == families[compute])  && (families[graphics] == families[present]);
+}
+
+IrV::queue_family_indices IrV::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
+	IrV::queue_family_indices indices{};
+	
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+	size_t iterator = 0;
+	for(const auto& queueFamily : queueFamilies) {
+		if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			indices.setFamily(queue_family_indices::graphics, iterator);
+		}
+		if(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) {
+			indices.setFamily(queue_family_indices::compute, iterator);
+		}
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, iterator, surface, &presentSupport);
+		if(presentSupport) 
+			indices.setFamily(queue_family_indices::present, iterator);
+		if(indices.isComplete()) {
+			ENGINE_LOG_INFO("Found complete queue family with index {}", iterator);
+			ENGINE_LOG_INFO_NP("graphics: {}", indices.isFamilyPresent(queue_family_indices::graphics));
+			ENGINE_LOG_INFO_NP("compute: {}", indices.isFamilyPresent(queue_family_indices::compute));
+			ENGINE_LOG_INFO_NP("present: {}", indices.isFamilyPresent(queue_family_indices::present));
+		} else {
+			ENGINE_LOG_INFO("Found incomplete queue family with index {}", iterator);
+			ENGINE_LOG_INFO_NP("graphics: {}", indices.isFamilyPresent(queue_family_indices::graphics));
+			ENGINE_LOG_INFO_NP("compute: {}", indices.isFamilyPresent(queue_family_indices::compute));
+			ENGINE_LOG_INFO_NP("present: {}", indices.isFamilyPresent(queue_family_indices::present));
+		}
+		iterator++;
+	}
+
+	return indices;
+}
+
+//Extensions
+
+std::vector<const char*> IrV::getRequiredExtensions() {
+	uint32_t glfwExtensionCount = 0;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+	if constexpr(USE_VALIDATION_LAYERS) {
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+	return extensions;
+}
+
+const std::vector<const char*>& IrV::getDeviceExtensions() {
+	return deviceExtensions;
+}
+
+//Validation layers
+
+const std::vector<const char*>& IrV::getValidationLayers() {
+	return validationLayers;
+}
+
+bool IrV::checkValidationLayers() {
+	uint32_t layerCount = 0;
+	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+	std::vector<VkLayerProperties> availableLayers(layerCount);
+	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+	for(const auto& reqLayerRaw : validationLayers) {
+		std::string_view reqLayer(reqLayerRaw);
+		bool present = false;
+		for(const auto& presentLayer : availableLayers) {
+			if(reqLayer == presentLayer.layerName) {
+				present = true;
+				break;
+			}
+		}
+		if(!present)
+			return false;
+	}
+
+	return true;
+}
+
+// Swapchain
+
+IrV::swapchain_support_details IrV::querySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
+	swapchain_support_details details;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+	uint32_t formatCount = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+	if(formatCount) {
+		details.formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+	}
+
+	uint32_t presentModeCount = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+	if(presentModeCount) {
+		details.presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+	}
+
+	return details;	
+}
+
+VkSurfaceFormatKHR IrV::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
+	for(const auto& format : formats) {
+		if(format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			return format;
+	}
+	return formats[0];
+}
+
+VkPresentModeKHR IrV::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
+	for(const auto& mode : presentModes) {
+		if(mode == VK_PRESENT_MODE_MAILBOX_KHR)
+			return mode;
+		}
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D IrV::chooseSwapExtent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow* window) {
+	if(capabilities.currentExtent.width != UINT32_MAX)
+		return capabilities.currentExtent;
+	else {
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+		VkExtent2D extent{
+			.width = static_cast<uint32_t>(width),
+			.height =  static_cast<uint32_t>(height)
+		};
+
+		extent.width = std::clamp(extent.width, capabilities.maxImageExtent.width, capabilities.maxImageExtent.width);
+		extent.height = std::clamp(extent.height, capabilities.maxImageExtent.height, capabilities.maxImageExtent.height);
+		return extent;
+	}
+
+}
+
+// misc
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		[[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		[[maybe_unused]] void* pUserData
+	) {
+	switch(messageSeverity) {
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+		ENGINE_LOG_INFO("VK validation layer: {}", pCallbackData->pMessage);
+		break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+		ENGINE_LOG_INFO("VK validation layer: {}", pCallbackData->pMessage);
+		break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+		ENGINE_LOG_WARN("VK validation layer: {}", pCallbackData->pMessage);
+		break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+		ENGINE_LOG_ERROR("VK validation layer: {}", pCallbackData->pMessage);
+		break;
+		default:
+		break;
+	}
+	return VK_FALSE;
+}
+
+void IrV::populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT 
+							   | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+						   | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT 
+						   | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo.pfnUserCallback = debugCallback;
+	createInfo.pUserData = nullptr;
+}
+
+//OLD
+#if 0
+const std::vector<const char*>& Iridium::getValidationLayers() {
+	return validationLayers;
+}
 
 const std::vector<const char*>& Iridium::getDeviceExtensions() {
 	return deviceExtensions;
@@ -74,30 +298,6 @@ bool Iridium::checkValidationLayers() {
 	return true;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		[[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		[[maybe_unused]] void* pUserData
-	) {
-		switch(messageSeverity) {
-			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-			ENGINE_LOG_INFO("VK validation layer: {}", pCallbackData->pMessage);
-			break;
-			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-			ENGINE_LOG_INFO("VK validation layer: {}", pCallbackData->pMessage);
-			break;
-			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-			ENGINE_LOG_WARN("VK validation layer: {}", pCallbackData->pMessage);
-			break;
-			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-			ENGINE_LOG_ERROR("VK validation layer: {}", pCallbackData->pMessage);
-			break;
-			default:
-			break;
-		}
-		return VK_FALSE;
-	}
 
 void Iridium::populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -221,3 +421,4 @@ VkExtent2D Iridium::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilitie
 		return extent;
 	}
 }
+#endif

@@ -112,7 +112,7 @@ private:
 	ir::shader_compiler m_shaderCompiler;
 
 	void createInstance() {
-		if(USE_VALIDATION_LAYERS && !ir::checkValidationLayers()) {
+		if(USE_VALIDATION_LAYERS && !Iridium::Vulkan::checkValidationLayers()) {
 			throw ir::Renderer::renderer_error("validation layers requested, but not available.");
 		}
 
@@ -125,7 +125,7 @@ private:
 		appInfo.engineVersion = VK_MAKE_VERSION(0, 0, 1);
 		appInfo.apiVersion = VK_API_VERSION_1_0;
 
-		auto extensions = ir::getRequiredExtensions();
+		auto extensions = Iridium::Vulkan::getRequiredExtensions();
 		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
@@ -133,10 +133,10 @@ private:
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
-		auto& validationLayers = ir::getValidationLayers();
+		auto& validationLayers = Iridium::Vulkan::getValidationLayers();
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 		if constexpr(USE_VALIDATION_LAYERS) {
-			ir::populateVkDeugUtilsMessengerCreateInfoEXT(debugCreateInfo);
+			Iridium::Vulkan::populateVkDeugUtilsMessengerCreateInfoEXT(debugCreateInfo);
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
 			createInfo.pNext = &debugCreateInfo;
@@ -251,12 +251,14 @@ private:
 	}
 
 	void createCommandPool() {
-		ir::queue_family_indices queueFamilyIndices = ir::findQueueFamilies(m_physicalDevice, m_surface);
+		using enum Iridium::Vulkan::queue_family_indices::family_type;
+
+		Iridium::Vulkan::queue_family_indices queueFamilyIndices = Iridium::Vulkan::findQueueFamilies(m_physicalDevice, m_surface);
 		
 		VkCommandPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		createInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+		createInfo.queueFamilyIndex = queueFamilyIndices.families[graphics];
 		if(vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool) != VK_SUCCESS)
 			throw ir::Renderer::renderer_error("failed to create command pool");
 	}
@@ -552,10 +554,10 @@ private:
 	}
 
 	void createSwapchain() {
-		ir::swapchain_support_details swapchainSupport = ir::querySwapchainSupport(m_physicalDevice, m_surface);
-		VkSurfaceFormatKHR surfaceFormat = ir::chooseSwapSurfaceFormat(swapchainSupport.formats);
-		VkPresentModeKHR presentMode = ir::chooseSwapPresentMode(swapchainSupport.presentModes);
-		VkExtent2D extent = ir::chooseSwapExtent(swapchainSupport.capabilities, m_window);
+		Iridium::Vulkan::swapchain_support_details swapchainSupport = Iridium::Vulkan::querySwapchainSupport(m_physicalDevice, m_surface);
+		VkSurfaceFormatKHR surfaceFormat = Iridium::Vulkan::chooseSwapSurfaceFormat(swapchainSupport.formats);
+		VkPresentModeKHR presentMode = Iridium::Vulkan::chooseSwapPresentMode(swapchainSupport.presentModes);
+		VkExtent2D extent = Iridium::Vulkan::chooseSwapExtent(swapchainSupport.capabilities, m_window);
 		uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
 		if(swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
 			imageCount = swapchainSupport.capabilities.maxImageCount;
@@ -571,9 +573,14 @@ private:
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		ir::queue_family_indices indices = Iridium::findQueueFamilies(m_physicalDevice, m_surface);
-		uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.computeFamily.value(), indices.presentFamily.value()};
-		if(indices.graphicsFamily != indices.computeFamily || indices.computeFamily != indices.presentFamily || indices.presentFamily != indices.graphicsFamily) {
+		using enum Iridium::Vulkan::queue_family_indices::family_type;
+		Iridium::Vulkan::queue_family_indices indices = Iridium::Vulkan::findQueueFamilies(m_physicalDevice, m_surface);
+		uint32_t queueFamilyIndices[] = {
+			indices.families[graphics],
+			indices.families[compute],
+			indices.families[present]
+		};
+		if(!indices.isOneIndex()) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 3;
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -606,13 +613,16 @@ private:
 	}
 
 	void createLogicalDevice() {
-		ir::queue_family_indices indices = ir::findQueueFamilies(m_physicalDevice, m_surface);
+		using enum Iridium::Vulkan::queue_family_indices::family_type;
 		
+		Iridium::Vulkan::queue_family_indices indices = Iridium::Vulkan::findQueueFamilies(m_physicalDevice, m_surface);
+		[[maybe_unused]] auto indices_2 = Iridium::Vulkan::findQueueFamilies(m_physicalDevice, m_surface);
+
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies = {
-			indices.graphicsFamily.value(),
-			indices.computeFamily.value(),
-			indices.presentFamily.value()
+			indices.families[graphics],
+			indices.families[compute],
+			indices.families[present]
 		};
 		
 		float queuePriority = 0.0f;
@@ -627,7 +637,7 @@ private:
 
 		VkPhysicalDeviceFeatures deviceFeatures{};
 
-		auto& deviceExtensions = ir::getDeviceExtensions();
+		auto& deviceExtensions = Iridium::Vulkan::getDeviceExtensions();
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -636,7 +646,7 @@ private:
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		if constexpr(USE_VALIDATION_LAYERS) {
-			auto& validationLayers = ir::getValidationLayers();
+			auto& validationLayers = Iridium::Vulkan::getValidationLayers();
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
 		} else {
@@ -646,9 +656,12 @@ private:
 		if(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
 			throw ir::Renderer::renderer_error("failed to create logical device.");
 		}
-		vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0, &m_graphicsQueue);
-		vkGetDeviceQueue(m_device, indices.computeFamily.value(), 0, &m_computeQueue);
-		vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
+
+		using enum Iridium::Vulkan::queue_family_indices::family_type;
+
+		vkGetDeviceQueue(m_device, indices.families[graphics], 0, &m_graphicsQueue);
+		vkGetDeviceQueue(m_device, indices.families[compute], 0, &m_computeQueue);
+		vkGetDeviceQueue(m_device, indices.families[present], 0, &m_presentQueue);
 	}
 
 	void pickPhysicalDevice() {
@@ -680,7 +693,7 @@ private:
 		if constexpr(!USE_VALIDATION_LAYERS) return;
 
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-		ir::populateVkDeugUtilsMessengerCreateInfoEXT(createInfo);
+		Iridium::Vulkan::populateVkDeugUtilsMessengerCreateInfoEXT(createInfo);
 
 		VkResult result = CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger);
 		if(result != VK_SUCCESS) {
@@ -777,6 +790,8 @@ extern void entryPoint();
 
 int main(int argc, char** argv) {
 	ir::setThreadName("Main");
+
+	
 
 	ENGINE_LOG_INFO("Args are:");
 	for(int iterator = 0; iterator < argc; iterator++) {

@@ -23,7 +23,7 @@ namespace Iridium {
 
 		shader_type& operator=(underlying_enum enumerator);
 
-		std::string_view str() const;
+		const char* str() const;
 	};
 
 
