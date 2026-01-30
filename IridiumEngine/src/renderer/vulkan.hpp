@@ -11,10 +11,6 @@ namespace Iridium {
 		struct renderer_error : public std::runtime_error {
 			renderer_error(const std::string& what);
 		};
-
-		class renderer {
-
-		};
 	}
 
 	namespace Vulkan {
@@ -72,6 +68,9 @@ namespace Iridium {
 		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 		VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow* window);
+
+		//Device
+		bool isDeviceSuitable([[maybe_unused]] VkPhysicalDevice device);
 
 		//misc
 		void populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT &createInfo);

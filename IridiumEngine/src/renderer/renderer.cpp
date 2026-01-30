@@ -1,6 +1,7 @@
 #include "renderer.hpp"
 
 #include "vulkan.hpp"
+#include <format>
 #include <vulkan/vulkan_core.h>
 
 namespace IrV = Iridium::Vulkan;
@@ -9,6 +10,7 @@ void Iridium::Renderer::renderer::initWindow() {
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	
 	m_window = glfwCreateWindow(800, 600, m_info.name, nullptr, nullptr);
 	glfwSetWindowUserPointer(m_window, this);
 	glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int, int) -> void {
@@ -19,10 +21,22 @@ void Iridium::Renderer::renderer::initWindow() {
 
 void Iridium::Renderer::renderer::initVulkan() {
 	createInstance();
+	setupDebugMessenger();
+	createSurface();
+	pickPhysicalDevice();
+	createLogicalDevice();
+	createSwapchain();
+	createImageViews();
+	createRenderPass();
+	createGraphicsPipeline();
+	createFramebuffers();
+	createCommandPool();
+	createCommandBuffers();
+	createSyncObjects();
 }
 
 void Iridium::Renderer::renderer::createInstance() {
-	if(USE_VALIDATION_LAYERS && Iridium::checkValidationLayers()) {
+	if(USE_VALIDATION_LAYERS && Vulkan::checkValidationLayers()) {
 		throw Iridium::Renderer::renderer_error("validation layer unavailable.");
 	}
 
@@ -41,4 +55,40 @@ void Iridium::Renderer::renderer::createInstance() {
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.enabledExtensionCount = extensions.size();
 	createInfo.ppEnabledExtensionNames = extensions.data();
+
+	auto& validationLayers = Iridium::Vulkan::getValidationLayers();
+	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+	if constexpr(USE_VALIDATION_LAYERS) {
+		Iridium::Vulkan::populateVkDeugUtilsMessengerCreateInfoEXT(debugCreateInfo);
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
+		createInfo.pNext = &debugCreateInfo;
+	}
+
+	VkResult createResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
+	if(createResult != VK_SUCCESS) {
+		throw Iridium::Renderer::renderer_error(std::format("Failed to create vk instance with error code: {}", (size_t)createResult));
+	}
+}
+
+void Iridium::Renderer::renderer::setupDebugMessenger() {
+	if constexpr(!USE_VALIDATION_LAYERS) return;
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+	Iridium::Vulkan::populateVkDeugUtilsMessengerCreateInfoEXT(createInfo);
+
+	VkResult result = Vulkan::CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &m_debugMessenger);
+	if(result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to set up debug messenger.");
+	}
+}
+
+void Iridium::Renderer::renderer::createSurface() {
+	if(glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS) {
+		throw Iridium::Renderer::renderer_error("failed to create window surface");
+	}
+}
+
+void pickPhysicalDevice() {
+	
 }

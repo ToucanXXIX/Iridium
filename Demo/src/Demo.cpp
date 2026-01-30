@@ -1,10 +1,11 @@
 #include "appinfo.hpp"
 #include "entryPoint.hpp"
 
-class demo : public Iridium::application {
+class demo final : public Iridium::application {
 	const Iridium::appinfo& getAppinfo() override {
 		static Iridium::appinfo info{
-			.name = "Demo"
+			.name = "Demo",
+			.version = {1,0,0}
 		};
 		return info;
 	}

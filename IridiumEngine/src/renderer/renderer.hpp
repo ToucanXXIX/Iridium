@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_core.h>
 
 #include "../appinfo.hpp"
 
@@ -17,13 +18,20 @@ namespace Iridium {
 			window_ptr m_window;
 
 			//Vulkan
+			VkInstance m_instance;
+			VkDebugUtilsMessengerEXT m_debugMessenger;
+			VkSurfaceKHR m_surface;
+			VkPhysicalDevice m_physicalDevice;
 
 			bool m_framebufferResized = false;
 
-			void initVulkan();
 			void initWindow();
+			void initVulkan();
 
 			void createInstance();
+			void setupDebugMessenger();
+			void createSurface();
+			void pickPhysicalDevice();
 		};
 	}
 }

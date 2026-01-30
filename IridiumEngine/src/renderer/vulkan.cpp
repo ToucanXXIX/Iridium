@@ -208,6 +208,13 @@ VkExtent2D IrV::chooseSwapExtent(VkSurfaceCapabilitiesKHR capabilities, GLFWwind
 
 }
 
+// device
+
+//TODO: make this actualy check device suitability
+bool IrV::isDeviceSuitable([[maybe_unused]] VkPhysicalDevice device) {
+	return true;
+}
+
 // misc
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
