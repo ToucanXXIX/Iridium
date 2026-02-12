@@ -14,6 +14,10 @@ namespace Iridium {
 	}
 
 	namespace Vulkan {
+		struct vulkan_error : public std::runtime_error {
+			vulkan_error(const std::string& what);
+		};
+
 		//Vulkan lazy loaded functions
 		VkResult CreateDebugUtilsMessengerEXT(
 			VkInstance instance,

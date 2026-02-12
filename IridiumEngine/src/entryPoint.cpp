@@ -2,7 +2,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <iterator>
 #include <print>
+#include <ranges>
 #include <set>
 #include <stdexcept>
 #include <vulkan/vk_platform.h>
@@ -657,8 +659,6 @@ private:
 			throw ir::Renderer::renderer_error("failed to create logical device.");
 		}
 
-		using enum Iridium::Vulkan::queue_family_indices::family_type;
-
 		vkGetDeviceQueue(m_device, indices.families[graphics], 0, &m_graphicsQueue);
 		vkGetDeviceQueue(m_device, indices.families[compute], 0, &m_computeQueue);
 		vkGetDeviceQueue(m_device, indices.families[present], 0, &m_presentQueue);
@@ -790,12 +790,10 @@ extern void entryPoint();
 
 int main(int argc, char** argv) {
 	ir::setThreadName("Main");
-
-	
-
-	ENGINE_LOG_INFO("Args are:");
-	for(int iterator = 0; iterator < argc; iterator++) {
-		ENGINE_LOG_INFO_NP("#{}>{}", iterator, argv[iterator]);
+	auto span = std::span(argv, std::next(argv, argc));
+	ENGINE_LOG_INFO("Argumets are:");
+	for(auto [index, option] : std::views::enumerate(span)) {
+		ENGINE_LOG_INFO_NP("#{} -> {}", index, option);
 	}
 
 	try {
