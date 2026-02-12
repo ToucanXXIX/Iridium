@@ -19,8 +19,6 @@ IrR::renderer_error::renderer_error(const std::string& what) : std::runtime_erro
 
 //NEW
 
-IrV::vulkan_error::vulkan_error(const std::string& what) : std::runtime_error(what) {};
-
 //Constants
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"

@@ -1,2 +1,0 @@
-/usr/bin/llvm-ar-19 qc libIridiumEngine.a CMakeFiles/IridiumEngine.dir/src/log.cpp.o CMakeFiles/IridiumEngine.dir/src/entryPoint.cpp.o CMakeFiles/IridiumEngine.dir/src/thread.cpp.o CMakeFiles/IridiumEngine.dir/src/renderer/window.cpp.o CMakeFiles/IridiumEngine.dir/src/renderer/vulkan.cpp.o CMakeFiles/IridiumEngine.dir/src/renderer/shader.cpp.o
-/usr/bin/llvm-ranlib-19 libIridiumEngine.a

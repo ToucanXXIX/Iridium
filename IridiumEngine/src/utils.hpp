@@ -3,7 +3,7 @@
 #define CONCAT_IMPL(x, y) x##y
 #define CONCAT(x, y) CONCAT_IMPL(x, y)
 
-#define defer(STATEMENT) auto CONCAT(__defer,__COUNTER__) = Iridium::impl::makeOnScopeExit([&]() -> void {STATEMENT ;})
+#define defer(STATEMENT) auto CONCAT(__defer,__COUNTER__) = Iridium::impl::makeOnScopeExit([&]() -> void {STATEMENT})
 
 namespace Iridium {
 	namespace impl {

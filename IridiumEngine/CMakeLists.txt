@@ -4,25 +4,14 @@ project(IridiumEngine VERSION 1.0.0 LANGUAGES CXX)
 
 set(ENGINE_RESCOURCES
 	src/log.cpp
-	src/log.hpp
 	src/entryPoint.cpp
-	src/entryPoint.hpp
 	src/thread.cpp
-	src/thread.hpp
 )
 
 set(ENGINE_RENDERER_RESCOURCES
 	src/renderer/window.cpp
-	src/renderer/window.hpp
-
 	src/renderer/vulkan.cpp
-	src/renderer/vulkan.hpp
-
 	src/renderer/shader.cpp
-	src/renderer/shader.hpp
-
-	src/renderer/window.cpp
-	src/renderer/window.hpp
 )
 
 add_library(IridiumEngine ${ENGINE_RESCOURCES} ${ENGINE_RENDERER_RESCOURCES})
