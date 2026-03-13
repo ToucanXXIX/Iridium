@@ -2,9 +2,12 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <ratio>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <chrono>
+
 #include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
@@ -29,8 +32,12 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 //Lazy loaded funcs
-VkResult IrV::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pMessenger) {
-	static auto loadedFunc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+VkResult IrV::CreateDebugUtilsMessengerEXT(
+	VkInstance instance,
+	const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+	const VkAllocationCallbacks *pAllocator,
+	VkDebugUtilsMessengerEXT *pMessenger) {
+	auto loadedFunc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if(loadedFunc) {
 		return loadedFunc(instance, pCreateInfo, pAllocator, pMessenger);
 	} else {
@@ -39,12 +46,15 @@ VkResult IrV::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUti
 
 }
 
-void IrV::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) {
-	static auto loadedFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-			instance,
-			"vkDestroyDebugUtilsMessengerEXT");
-		if(loadedFunc)
-			loadedFunc(instance, debugMessenger, pAllocator);
+void IrV::DestroyDebugUtilsMessengerEXT(
+	VkInstance instance,
+	VkDebugUtilsMessengerEXT debugMessenger, 
+	const VkAllocationCallbacks *pAllocator) {
+	auto loadedFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+		instance,
+		"vkDestroyDebugUtilsMessengerEXT");
+	if(loadedFunc)
+		loadedFunc(instance, debugMessenger, pAllocator);
 }
 
 //Queue families
@@ -63,6 +73,7 @@ bool IrV::queue_family_indices::isComplete() const {
 	ret = ret && isFamilyPresent(graphics);
 	ret = ret && isFamilyPresent(compute);
 	ret = ret && isFamilyPresent(present);
+	ret = ret && isFamilyPresent(transfer);
 	return ret;
 }
 
@@ -71,39 +82,57 @@ bool IrV::queue_family_indices::isOneIndex() const {
 }
 
 IrV::queue_family_indices IrV::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
-	IrV::queue_family_indices indices{};
-	
-	uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+	static auto clock = std::chrono::steady_clock{};
+	auto start = clock.now();
 
-	size_t iterator = 0;
-	for(const auto& queueFamily : queueFamilies) {
-		if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-			indices.setFamily(queue_family_indices::graphics, iterator);
+	bool cached = true;
+	static IrV::queue_family_indices indices = [&device, &surface, &cached]() -> IrV::queue_family_indices {
+		cached = false;
+		
+		IrV::queue_family_indices result{};
+		
+		uint32_t queueFamilyCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+		ENGINE_LOG_INFO("found {} queue families", queueFamilies.size());
+		size_t iterator = 0;
+		for(const auto& queueFamily : queueFamilies) {
+			if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+				result.setFamily(queue_family_indices::graphics, iterator);
+			}
+			if(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) {
+				result.setFamily(queue_family_indices::compute, iterator);
+			}
+			if(queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) {
+				result.setFamily(queue_family_indices::transfer, iterator);
+			}
+			VkBool32 presentSupport = false;
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, iterator, surface, &presentSupport);
+			if(presentSupport) {
+				result.setFamily(queue_family_indices::present, iterator);
+			}
+			if(result.isComplete())
+				break;
+			iterator++;
 		}
-		if(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) {
-			indices.setFamily(queue_family_indices::compute, iterator);
-		}
-		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(device, iterator, surface, &presentSupport);
-		if(presentSupport) 
-			indices.setFamily(queue_family_indices::present, iterator);
-		if(indices.isComplete()) {
-			ENGINE_LOG_INFO("Found complete queue family with index {}", iterator);
-			ENGINE_LOG_INFO_NP("graphics: {}", indices.isFamilyPresent(queue_family_indices::graphics));
-			ENGINE_LOG_INFO_NP("compute: {}", indices.isFamilyPresent(queue_family_indices::compute));
-			ENGINE_LOG_INFO_NP("present: {}", indices.isFamilyPresent(queue_family_indices::present));
-		} else {
-			ENGINE_LOG_INFO("Found incomplete queue family with index {}", iterator);
-			ENGINE_LOG_INFO_NP("graphics: {}", indices.isFamilyPresent(queue_family_indices::graphics));
-			ENGINE_LOG_INFO_NP("compute: {}", indices.isFamilyPresent(queue_family_indices::compute));
-			ENGINE_LOG_INFO_NP("present: {}", indices.isFamilyPresent(queue_family_indices::present));
-		}
-		iterator++;
+		return result;
+	}();
+
+	auto end = clock.now();
+	[[maybe_unused]] auto time = std::chrono::duration<double, std::milli>(end - start);
+	/*
+	ENGINE_LOG_INFO("findQueueFamilies() took {:.3} (cached? {})", time, cached);
+	if(indices.isComplete()) {
+		ENGINE_LOG_INFO("Found complete queue family with index {}", indices.families[queue_family_indices::graphics]);
+	} else {
+		ENGINE_LOG_INFO("Found incomplete queue family");
 	}
-
+	ENGINE_LOG_INFO_NP("graphics: {} ({})", indices.isFamilyPresent(queue_family_indices::graphics), indices.families[queue_family_indices::graphics]);
+	ENGINE_LOG_INFO_NP("compute:  {} ({})", indices.isFamilyPresent(queue_family_indices::compute),  indices.families[queue_family_indices::compute]);
+	ENGINE_LOG_INFO_NP("present:  {} ({})", indices.isFamilyPresent(queue_family_indices::present),  indices.families[queue_family_indices::present]);
+	ENGINE_LOG_INFO_NP("transfer: {} ({})", indices.isFamilyPresent(queue_family_indices::transfer), indices.families[queue_family_indices::transfer]);
+	*/
 	return indices;
 }
 
@@ -212,7 +241,24 @@ VkExtent2D IrV::chooseSwapExtent(VkSurfaceCapabilitiesKHR capabilities, GLFWwind
 
 //TODO: make this actualy check device suitability
 bool IrV::isDeviceSuitable([[maybe_unused]] VkPhysicalDevice device) {
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(device, &deviceProperties);
+	
 	return true;
+}
+
+// shader
+
+VkShaderModule IrV::createShaderModule(const std::vector<uint32_t>& compiledShader, VkDevice device) {
+	VkShaderModuleCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = compiledShader.size() * sizeof(uint32_t);
+	createInfo.pCode = compiledShader.data();
+
+	VkShaderModule shaderModule;
+	if(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+		throw IrR::renderer_error("Failed to create shader module");
+	return shaderModule;
 }
 
 // misc
@@ -237,6 +283,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		ENGINE_LOG_ERROR("VK validation layer: {}", pCallbackData->pMessage);
 		break;
 		default:
+		ENGINE_LOG_FATAL("VK validation layer: {}", pCallbackData->pMessage);
 		break;
 	}
 	return VK_FALSE;

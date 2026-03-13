@@ -7,10 +7,12 @@
 #include <ranges>
 #include <set>
 #include <stdexcept>
-#include <vulkan/vk_platform.h>
+// #include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
 
+#include "appinfo.hpp"
 #include "log.hpp"
+#include "renderer/renderer.hpp"
 #include "renderer/vulkan.hpp"
 #include "renderer/shader.hpp"
 #include "thread.hpp"
@@ -189,12 +191,12 @@ private:
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 		for(size_t iterator = 0; iterator < MAX_FRAMES_IN_FLIGHT; iterator++) {
-		if(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[iterator]) != VK_SUCCESS)
-			throw ir::Renderer::renderer_error("failed to create image semaphore");
-		if(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[iterator]) != VK_SUCCESS)
-			throw ir::Renderer::renderer_error("failed to create render semaphore");
-		if(vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[iterator]) != VK_SUCCESS)
-			throw ir::Renderer::renderer_error("failed to create inFlight fence");
+			if(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[iterator]) != VK_SUCCESS)
+				throw ir::Renderer::renderer_error("failed to create image semaphore");
+			if(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[iterator]) != VK_SUCCESS)
+				throw ir::Renderer::renderer_error("failed to create render semaphore");
+			if(vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[iterator]) != VK_SUCCESS)
+				throw ir::Renderer::renderer_error("failed to create inFlight fence");
 		}
 	}
 
@@ -298,7 +300,7 @@ private:
 	}
 
 	void createGraphicsPipeline() {
-		std::string vertexShader = 
+		std::string vertexShader =
 		R"(
 		#version 450
 
@@ -313,6 +315,10 @@ private:
 			vec3(0.0, 1.0, 0.0),
 			vec3(0.0, 0.0, 1.0)		
 		);
+
+		layout(location = 0) in vec3 inPos;
+		layout(location = 1) in vec3 inColor;
+		layout(location = 2) in vec2 inUV;
 
 		layout(location = 0) out vec3 fragColor;
 
@@ -796,12 +802,27 @@ int main(int argc, char** argv) {
 		ENGINE_LOG_INFO_NP("#{} -> {}", index, option);
 	}
 
+#if 0
 	try {
 		HelloTriangleApplicaiton app;
 		app.run();
 	} catch (std::exception& e) {
 		ENGINE_LOG_ERROR("{}", std::string_view(e.what()));
 	}
+#else
+	try {
+		Iridium::shader_compiler shaderCompiler;
+		Iridium::appinfo info{
+			.name = "rendererTest",
+			.version = {1, 0, 0}
+		};
+		Iridium::Renderer::renderer renderer(info, shaderCompiler);
+		renderer.testLoop();
+		renderer.cleanup();
+	} catch (std::exception& e) {
+		ENGINE_LOG_ERROR("{}", std::string_view(e.what()));	
+	}
+#endif
 }
 
 int test() {

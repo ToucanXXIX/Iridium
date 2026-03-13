@@ -34,6 +34,7 @@ namespace Iridium {
 				graphics = 0,
 				compute,
 				present,
+				transfer,
 				COUNT
 			};
 
@@ -71,6 +72,9 @@ namespace Iridium {
 
 		//Device
 		bool isDeviceSuitable([[maybe_unused]] VkPhysicalDevice device);
+
+		//Shader
+		VkShaderModule createShaderModule(const std::vector<uint32_t>& compiledShader, VkDevice device);
 
 		//misc
 		void populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT &createInfo);

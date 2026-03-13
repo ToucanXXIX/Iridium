@@ -18,11 +18,20 @@ set(ENGINE_RENDERER_RESCOURCES
 	src/renderer/vulkan.hpp
 	src/renderer/shader.cpp
 	src/renderer/shader.hpp
+	src/renderer/renderer.cpp
+	src/renderer/renderer.hpp
+	src/renderer/vertex.cpp
+	src/renderer/vertex.hpp
 )
+
+# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 add_library(IridiumEngine ${ENGINE_RESCOURCES} ${ENGINE_RENDERER_RESCOURCES})
 
 target_compile_definitions(IridiumEngine PUBLIC
+	GLM_FORCE_RADIANS
+	GLM_FORCE_DEFAULT_ALIGNED_TYPES
+
 	$<$<CONFIG:Debug>:USE_VALIDATION_LAYERS=1>
 	$<$<NOT:$<CONFIG:Debug>>:USE_VALIDATION_LAYERS=0>
 )
@@ -39,7 +48,7 @@ FetchContent_Declare(
 set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Disable glslang command-line tools")
 set(ENABLE_SPVREMAPPER OFF CACHE BOOL "Disable SPIR-V remapper")
 set(ENABLE_HLSL OFF CACHE BOOL "Disable HLSL support")
-set(ENABLE_OPT OFF CACHE BOOL "disable SPIR-V opt")
+set(ENABLE_OPT ON CACHE BOOL "disable SPIR-V opt")
 
 FetchContent_MakeAvailable(glslang)
 
@@ -62,6 +71,7 @@ target_link_libraries(IridiumEngine PRIVATE
 	glm::glm
 #Vulkan
 	Vulkan::Vulkan
+	SPIRV-Tools-opt
 	Vulkan::SPIRV-Tools
 #glslang
 	glslang
