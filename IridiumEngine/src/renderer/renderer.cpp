@@ -1,15 +1,18 @@
 #include "renderer.hpp"
 
 #include "GLFW/glfw3.h"
+
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
-#include "glm/ext/scalar_constants.hpp"
 #include "glm/fwd.hpp"
 #include "glm/trigonometric.hpp"
+
 #include "vertex.hpp"
 #include "vulkan.hpp"
 #include "../log.hpp"
 #include "../utils.hpp"
+#include "window.hpp"
+#include "shader.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -23,27 +26,13 @@
 
 namespace IrV = Iridium::Vulkan;
 
-Iridium::Renderer::renderer::renderer(appinfo& info, shader_compiler& shaderCompiler)
-	:m_info(info), m_shaderCompiler(shaderCompiler) {
+Iridium::Renderer::renderer::renderer(appinfo& info)
+	:m_info(info) {
 	ENGINE_LOG_INFO("Initializing engine renderer.");
 
 	m_rendererStart = std::chrono::steady_clock::now();
 
-	initWindow();
 	initVulkan();
-}
-
-void Iridium::Renderer::renderer::initWindow() {
-	glfwInit();
-
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	
-	m_window = glfwCreateWindow(800, 600, m_info.name, nullptr, nullptr);
-	glfwSetWindowUserPointer(m_window, this);
-	glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int, int) -> void {
-		renderer& renderer = *reinterpret_cast<class renderer*>(glfwGetWindowUserPointer(window));
-		renderer.m_framebufferResized = true;
-	});
 }
 
 // vulkan setup
@@ -51,6 +40,7 @@ void Iridium::Renderer::renderer::initVulkan() {
 	createInstance();
 	setupDebugMessenger();
 	createSurface();
+	setWindowCallbacks();
 	pickPhysicalDevice();
 	createLogicalDevice();
 	createSwapchain();
@@ -102,23 +92,24 @@ void Iridium::Renderer::renderer::createInstance() {
 	appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_3;
 
+	std::vector<const char*> layers;
+	layers.push_back("VK_LAYER_KHRONOS_shader_object");
+	if constexpr(USE_VALIDATION_LAYERS) {
+		ENGINE_LOG_INFO("Using validation layers");
+		for(const auto layer : Iridium::Vulkan::getValidationLayers())
+			layers.push_back(layer);
+	}
 	auto extensions = IrV::getRequiredExtensions();
+	for(const auto& ext : extensions) {
+		ENGINE_LOG_WARN("Enabled instance extension: {}", ext);
+	}
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledLayerCount = 0;
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
-
-	auto& validationLayers = Iridium::Vulkan::getValidationLayers();
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-	if(USE_VALIDATION_LAYERS) {
-		ENGINE_LOG_INFO("Using validation layers.");
-		Iridium::Vulkan::populateVkDeugUtilsMessengerCreateInfoEXT(debugCreateInfo);
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-		createInfo.pNext = &debugCreateInfo;
-	}
+	createInfo.ppEnabledLayerNames = layers.data();
+	createInfo.enabledLayerCount = layers.size();
 
 	VkResult createResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
 	if(createResult != VK_SUCCESS) {
@@ -139,9 +130,18 @@ void Iridium::Renderer::renderer::setupDebugMessenger() {
 }
 
 void Iridium::Renderer::renderer::createSurface() {
-	if(glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) != VK_SUCCESS) {
+	GLFWwindow* window = (GLFWwindow*)getWindowManager()->getWindowHandle();
+	if(glfwCreateWindowSurface(m_instance, window, nullptr, &m_surface) != VK_SUCCESS) {
 		throw Iridium::Renderer::renderer_error("failed to create window surface");
 	}
+}
+
+void Iridium::Renderer::renderer::setWindowCallbacks() {
+	GLFWwindow* window = (GLFWwindow*)getWindowManager()->getWindowHandle();
+	glfwSetFramebufferSizeCallback(window, [](GLFWwindow*, int, int) -> void {
+		renderer* renderer = getApplicationPointer()->renderer;
+		renderer->m_framebufferResized = true;
+	});
 }
 
 void Iridium::Renderer::renderer::pickPhysicalDevice() {
@@ -153,6 +153,7 @@ void Iridium::Renderer::renderer::pickPhysicalDevice() {
 	std::vector<VkPhysicalDevice> devices(deviceCount);
 	vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
+	//TODO(): rank devices, then choose the best device instead of picking the first suitable one 
 	for(const auto& device : devices) {
 		if(Vulkan::isDeviceSuitable(device)) {
 			m_physicalDevice = device;
@@ -163,9 +164,8 @@ void Iridium::Renderer::renderer::pickPhysicalDevice() {
 	if(m_physicalDevice == VK_NULL_HANDLE)
 		throw Iridium::Renderer::renderer_error("Failed to find suitable gpu.");
 
-	VkPhysicalDeviceProperties properties;
+	VkPhysicalDeviceProperties properties{};
 	vkGetPhysicalDeviceProperties(m_physicalDevice, &properties);
-
 	ENGINE_LOG_INFO("Device name: {}", properties.deviceName);
 }
 
@@ -193,7 +193,25 @@ void Iridium::Renderer::renderer::createLogicalDevice() {
 	}
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.fillModeNonSolid = VK_TRUE;
+
 	auto& deviceExtensions = Iridium::Vulkan::getDeviceExtensions();
+
+	//TODO(): move this to separate function to make the chain automatically.
+	VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3{};
+	extendedDynamicState3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+	extendedDynamicState3.extendedDynamicState3PolygonMode = VK_TRUE; //enable wireframe withouth re-creating pipeline
+
+	VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT swapchainMaintenance1{};
+	swapchainMaintenance1.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT;
+	swapchainMaintenance1.swapchainMaintenance1 = VK_TRUE; // fencing on images
+	swapchainMaintenance1.pNext = &extendedDynamicState3;
+
+	VkPhysicalDeviceShaderObjectFeaturesEXT shaderObject{};
+	shaderObject.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+	shaderObject.shaderObject = VK_TRUE;
+	shaderObject.pNext = &swapchainMaintenance1;
+
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -201,13 +219,9 @@ void Iridium::Renderer::renderer::createLogicalDevice() {
 	createInfo.pEnabledFeatures = &deviceFeatures;
 	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	createInfo.enabledExtensionCount = deviceExtensions.size();
-	if constexpr(USE_VALIDATION_LAYERS) {
-		auto& validationLayers = Iridium::Vulkan::getValidationLayers();
-		createInfo.enabledLayerCount = validationLayers.size();
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-	} else {
-		createInfo.enabledLayerCount = 0;
-	}
+	createInfo.enabledLayerCount = 0; //DONT USE, DEPRECATED
+	createInfo.ppEnabledLayerNames = nullptr; //DONT USE, DEPRECATED
+	createInfo.pNext = &shaderObject;
 
 	if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
 		throw Iridium::Renderer::renderer_error("Failed to create logical device.");
@@ -219,10 +233,12 @@ void Iridium::Renderer::renderer::createLogicalDevice() {
 }
 
 void Iridium::Renderer::renderer::createSwapchain() {
+	GLFWwindow* window = (GLFWwindow*)getApplicationPointer()->windowManager->getWindowHandle();
+
 	Iridium::Vulkan::swapchain_support_details swapchainSupport = Iridium::Vulkan::querySwapchainSupport(m_physicalDevice, m_surface);
 	VkSurfaceFormatKHR surfaceFormat = Iridium::Vulkan::chooseSwapSurfaceFormat(swapchainSupport.formats);
 	VkPresentModeKHR presentMode = Iridium::Vulkan::chooseSwapPresentMode(swapchainSupport.presentModes);
-	VkExtent2D extent = Iridium::Vulkan::chooseSwapExtent(swapchainSupport.capabilities, m_window);
+	VkExtent2D extent = Iridium::Vulkan::chooseSwapExtent(swapchainSupport.capabilities, window);
 	uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
 	if(swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
 		imageCount = swapchainSupport.capabilities.maxImageCount;
@@ -273,10 +289,12 @@ void Iridium::Renderer::renderer::createSwapchain() {
 }
 
 void Iridium::Renderer::renderer::recreateSwapchain() {
+	GLFWwindow* window = (GLFWwindow*)getApplicationPointer()->windowManager->getWindowHandle();
+
 	int width, height;
-	glfwGetFramebufferSize(m_window, &width, &height);
+	glfwGetFramebufferSize(window, &width, &height);
 	while(width == 0 || height == 0) {
-		glfwGetFramebufferSize(m_window, &width, &height);
+		glfwGetFramebufferSize(window, &width, &height);
 		glfwWaitEvents();
 	}
 	vkDeviceWaitIdle(m_device);
@@ -381,6 +399,8 @@ void Iridium::Renderer::renderer::createDescriptorSetLayout() {
 }
 
 void Iridium::Renderer::renderer::createGraphicsPipeline() {
+	auto& shaderCompiler = *getApplicationPointer()->shaderCompiler;
+
 	std::string vertShader =
 	R"(
 	#version 450
@@ -464,11 +484,11 @@ void Iridium::Renderer::renderer::createGraphicsPipeline() {
 	}
 	)" "\0";
 
-	auto compiledVertShader = m_shaderCompiler.compileShader({vertShader}, Iridium::shader_type::vertex);
+	auto compiledVertShader = shaderCompiler.compileShader({vertShader}, Iridium::shader_type::vertex);
 
-	auto compiledFragShader = m_shaderCompiler.compileShader({fragmentShader}, Iridium::shader_type::fragment); // default
-	//auto compiledFragShader = m_shaderCompiler.compileShader({missingFragShader}, Iridium::shader_type::fragment); // missing texture
-	//auto compiledFragShader = m_shaderCompiler.compileShader({circleFragShader}, Iridium::shader_type::fragment); // circle
+	auto compiledFragShader = shaderCompiler.compileShader({fragmentShader}, Iridium::shader_type::fragment); // default
+	//auto compiledFragShader = shaderCompiler.compileShader({missingFragShader}, Iridium::shader_type::fragment); // missing texture
+	//auto compiledFragShader = shaderCompiler.compileShader({circleFragShader}, Iridium::shader_type::fragment); // circle
 
 	VkShaderModule vertShaderModule = Vulkan::createShaderModule(compiledVertShader, m_device);
 	defer(vkDestroyShaderModule(m_device, vertShaderModule, nullptr));
@@ -521,7 +541,8 @@ void Iridium::Renderer::renderer::createGraphicsPipeline() {
 
 	std::vector<VkDynamicState> dynamicStates = {
 		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_SCISSOR
+		VK_DYNAMIC_STATE_SCISSOR,
+		VK_DYNAMIC_STATE_POLYGON_MODE_EXT
 	};
 
 	VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -539,6 +560,7 @@ void Iridium::Renderer::renderer::createGraphicsPipeline() {
 	rasterizer.depthClampEnable = VK_FALSE;
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_NONE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -811,6 +833,9 @@ void Iridium::Renderer::renderer::recordCommandBuffer(VkCommandBuffer commandBuf
 	scissor.extent = m_swapchainExtent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+	VkPolygonMode mode = drawWireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
+	Vulkan::CmdSetPolygonModeEXT(m_instance, commandBuffer, mode);
+
 	VkBuffer vertexBuffers[] = {m_vertexBuffer};
 	VkDeviceSize offsets[] = {0};
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
@@ -843,10 +868,15 @@ void Iridium::Renderer::renderer::createSyncObjects() {
 	for(size_t iterator = 0; iterator < MAX_FRAMES_IN_FLIGHT; iterator++) {
 		if(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[iterator]) != VK_SUCCESS)
 			throw Iridium::Renderer::renderer_error("Failed to create image available semaphore.");
+		
 		if(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[iterator]) != VK_SUCCESS)
 			throw Iridium::Renderer::renderer_error("Failed to create render finished semaphore.");
+		
 		if(vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[iterator]) != VK_SUCCESS)
 			throw Iridium::Renderer::renderer_error("Failed to create in-flight fence.");
+		
+		if(vkCreateFence(m_device, &fenceInfo, nullptr, &m_presentFences[iterator]) != VK_SUCCESS)
+			throw Iridium::Renderer::renderer_error("Failed to create present fence.");
 	}
 }
 
@@ -855,10 +885,14 @@ void Iridium::Renderer::renderer::destroySyncObjects() {
 		vkDestroySemaphore(m_device, m_imageAvailableSemaphores[iterator], nullptr);
 		vkDestroySemaphore(m_device, m_renderFinishedSemaphores[iterator], nullptr);
 		vkDestroyFence(m_device, m_inFlightFences[iterator], nullptr);
+		vkDestroyFence(m_device, m_presentFences[iterator], nullptr);
 	}
 }
 
 void Iridium::Renderer::renderer::drawFrame() {
+	vkWaitForFences(m_device, 1, &m_presentFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+	vkResetFences(m_device, 1, &m_presentFences[m_currentFrame]);
+
 	vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 	uint32_t imageIndex = 0;
 	VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
@@ -892,6 +926,11 @@ void Iridium::Renderer::renderer::drawFrame() {
 
 	VkSwapchainKHR swapChains[] = { m_swapchain };
 
+	VkSwapchainPresentFenceInfoEXT fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_EXT;
+	fenceInfo.swapchainCount = 1;
+	fenceInfo.pFences = &m_presentFences[m_currentFrame];
+
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.waitSemaphoreCount = 1;
@@ -900,6 +939,7 @@ void Iridium::Renderer::renderer::drawFrame() {
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageIndex;
 	presentInfo.pResults = nullptr;
+	presentInfo.pNext = &fenceInfo;
 
 	result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized) {
@@ -994,4 +1034,8 @@ void Iridium::Renderer::renderer::copyBuffer(VkBuffer src, VkBuffer dst, size_t 
 	vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(m_graphicsQueue);
 	vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+}
+
+Iridium::Renderer::renderer* Iridium::Renderer::getRenderer() {
+	return getApplicationPointer()->renderer;
 }

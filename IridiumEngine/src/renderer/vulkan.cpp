@@ -24,11 +24,20 @@ IrR::renderer_error::renderer_error(const std::string& what) : std::runtime_erro
 
 //Constants
 const std::vector<const char*> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"
+	"VK_LAYER_KHRONOS_validation",
+	//"VK_LAYER_MESA_overlay"
+};
+
+const std::vector<const char*> instanceExtensions = {
+	"VK_EXT_surface_maintenance1",
+	"VK_KHR_get_surface_capabilities2"
 };
 
 const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	"VK_EXT_swapchain_maintenance1",
+	"VK_EXT_extended_dynamic_state3",
+	VK_EXT_SHADER_OBJECT_EXTENSION_NAME
 };
 
 //Lazy loaded funcs
@@ -55,6 +64,18 @@ void IrV::DestroyDebugUtilsMessengerEXT(
 		"vkDestroyDebugUtilsMessengerEXT");
 	if(loadedFunc)
 		loadedFunc(instance, debugMessenger, pAllocator);
+}
+
+void IrV::CmdSetPolygonModeEXT(
+	VkInstance instance,
+	VkCommandBuffer commandBuffer,
+	VkPolygonMode polygonMode) {
+	static auto loadedFunc = (PFN_vkCmdSetPolygonModeEXT)vkGetInstanceProcAddr(
+		instance,
+		"vkCmdSetPolygonModeEXT"
+	);
+	if(loadedFunc)
+		loadedFunc(commandBuffer, polygonMode);
 }
 
 //Queue families
@@ -112,6 +133,7 @@ IrV::queue_family_indices IrV::findQueueFamilies(VkPhysicalDevice device, VkSurf
 			if(presentSupport) {
 				result.setFamily(queue_family_indices::present, iterator);
 			}
+
 			if(result.isComplete())
 				break;
 			iterator++;
@@ -144,6 +166,9 @@ std::vector<const char*> IrV::getRequiredExtensions() {
 	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 	if constexpr(USE_VALIDATION_LAYERS) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+	for(const auto extension : instanceExtensions) {
+		extensions.push_back(extension);
 	}
 	return extensions;
 }
@@ -244,6 +269,23 @@ bool IrV::isDeviceSuitable([[maybe_unused]] VkPhysicalDevice device) {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
 	
+	uint32_t presentDeviceExtensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &presentDeviceExtensionCount, nullptr);
+	std::vector<VkExtensionProperties> presentExtensions(presentDeviceExtensionCount);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &presentDeviceExtensionCount, presentExtensions.data());
+	//ENGINE_LOG_INFO("Found device extensions:");
+	//for(const auto& extension : presentExtensions) {
+	//	ENGINE_LOG_INFO_NP("-> {}", extension.extensionName);
+	//}
+
+	uint32_t presentLayersCount = 0;
+	vkEnumerateDeviceLayerProperties(device, &presentLayersCount, nullptr);
+	std::vector<VkLayerProperties> presentLayers(presentLayersCount);
+	vkEnumerateDeviceLayerProperties(device, &presentLayersCount, presentLayers.data());
+	//ENGINE_LOG_INFO("Found device layers:");
+	//for(const auto& layer : presentLayers) {
+	//	ENGINE_LOG_INFO_NP("-> {}", layer.layerName);
+	//}
 	return true;
 }
 

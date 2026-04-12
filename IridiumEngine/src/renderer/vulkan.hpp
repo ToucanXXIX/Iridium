@@ -28,6 +28,12 @@ namespace Iridium {
 			const VkAllocationCallbacks* pAllocator
 		);
 
+		void CmdSetPolygonModeEXT(
+			VkInstance instance,
+			VkCommandBuffer commandBuffer,
+			VkPolygonMode polygonMode
+		);
+
 		//Queue families
 		struct queue_family_indices {
 			enum family_type {

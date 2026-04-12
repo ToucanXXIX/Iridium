@@ -13,13 +13,10 @@
 
 #include "../appinfo.hpp"
 #include "vertex.hpp"
-
-#include "shader.hpp"
+#include "window.hpp"
 
 namespace Iridium {
 	namespace Renderer {
-		using window_ptr = GLFWwindow*;
-
 		struct push_constants {
 			glm::mat4 modelTransform;
 		};
@@ -32,29 +29,27 @@ namespace Iridium {
 
 		class renderer {
 		public:
-			renderer(appinfo& info, shader_compiler& shaderCompiler);
+			renderer(appinfo& info);
 
 			void inline testLoop() {
-				while(!glfwWindowShouldClose(m_window)) {
+				while(!getWindowManager()->windowShouldClose()) {
 					glfwPollEvents();
 					drawFrame();
 				}
-				vkDeviceWaitIdle(m_device);
+				//vkDeviceWaitIdle(m_device);
 			}
 
 			void inline cleanup() {
 				cleanupVulkan();
-				//cleanupGLFW();
 			}
 
-			static renderer* getWindowRenderer(window_ptr window) { return static_cast<renderer*>(glfwGetWindowUserPointer(window)); };
+			bool drawWireframe = false;
 		private:
 			enum { //constants
 				MAX_FRAMES_IN_FLIGHT = 3
 			};
 			
 			const appinfo& m_info;
-			window_ptr m_window;
 
 			//Vulkan
 			VkInstance m_instance;
@@ -84,6 +79,7 @@ namespace Iridium {
 			VkSemaphore m_imageAvailableSemaphores[MAX_FRAMES_IN_FLIGHT];
 			VkSemaphore m_renderFinishedSemaphores[MAX_FRAMES_IN_FLIGHT];
 			VkFence m_inFlightFences[MAX_FRAMES_IN_FLIGHT];
+			VkFence m_presentFences[MAX_FRAMES_IN_FLIGHT];
 
 			VkBuffer m_vertexBuffer;
 			VkDeviceMemory m_vertexBufferMemory;
@@ -107,20 +103,22 @@ namespace Iridium {
 				{{-0.5f, -0.5f, 0.0f},{1, 0, 0}, {0, 0}},
 				{{ 0.5f, -0.5f, 0.0f},{0, 1, 0}, {1, 0}},
 				{{ 0.5f,  0.5f, 0.0f},{0, 0, 1}, {1, 1}},
-				{{-0.5f,  0.5f, 0.0f},{1, 1, 1}, {0, 1}}
+				{{-0.5f,  0.5f, 0.0f},{1, 1, 1}, {0, 1}},
+
+
+				{{-0.5f, -0.5f, -0.25f},{1, 0, 0}, {0, 0}},
+				{{ 0.5f, -0.5f, -0.25f},{0, 1, 0}, {1, 0}},
+				{{ 0.5f,  0.5f, -0.25f},{0, 0, 1}, {1, 1}},
+				{{-0.5f,  0.5f, -0.25f},{1, 1, 1}, {0, 1}},
 			};
 
 			std::vector<uint32_t> m_indices {
 				0, 1, 2,
-				2, 3, 0
+				2, 3, 0,
+
+				4, 5, 6,
+				6, 7, 4,
 			};
-
-			//TODO: the renderer should not need to know about the shader compiler
-			// although some sort of fallback shader should probably be provided
-			// in case shader compilation fails or the shader cannot be loaded
-			Iridium::shader_compiler& m_shaderCompiler;
-
-			void initWindow();
 			
 			void initVulkan();
 			void cleanupVulkan();
@@ -129,7 +127,9 @@ namespace Iridium {
 
 			void setupDebugMessenger();
 
-			void createSurface();
+			void createSurface(); //depends on window
+
+			void setWindowCallbacks();
 			
 			void pickPhysicalDevice();
 			
@@ -179,5 +179,7 @@ namespace Iridium {
 			void createBuffer(size_t size, VkBufferUsageFlags flags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory &memory);
 			void copyBuffer(VkBuffer src, VkBuffer dst, size_t size);
 		};
+
+		renderer* getRenderer();
 	}
 }

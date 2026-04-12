@@ -3,12 +3,16 @@ include(FetchContent)
 project(IridiumEngine VERSION 1.0.0 LANGUAGES CXX)
 
 set(ENGINE_RESCOURCES
+	src/utils.cpp
+	src/utils.hpp
 	src/log.cpp
 	src/log.hpp
 	src/entryPoint.cpp
 	src/entryPoint.hpp
 	src/thread.cpp
 	src/thread.hpp
+	src/inputHandler.cpp
+	src/inputHandler.hpp
 )
 
 set(ENGINE_RENDERER_RESCOURCES
