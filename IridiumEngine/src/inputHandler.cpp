@@ -143,8 +143,10 @@ Iridium::input_handler::input_handler() {
 	m_textInputBufferCursor = 0;
 	m_textInputBufferSize = 1024;
 	m_textInputBuffer = ::new char32_t[m_textInputBufferSize];
+	memset(m_textInputBuffer, 0, m_textInputBufferSize * sizeof(char32_t));
 
 	m_keyStateArray = ::new bool[KEY_MAX_VALUE];
+	memset(m_keyStateArray, 0, KEY_MAX_VALUE * sizeof(bool));
 
 	glfwSetKeyCallback(window, [](GLFWwindow*, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) -> void {
 		if(action == GLFW_PRESS) {
