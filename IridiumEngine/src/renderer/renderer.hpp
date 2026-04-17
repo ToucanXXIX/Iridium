@@ -213,9 +213,6 @@ namespace Iridium {
 			void destroySyncObjects();
 
 			void drawFrame();
-
-			void cleanupGLFW();
-
 			//helpers
 			uint32_t findMemoryType(uint32_t filter, VkMemoryPropertyFlags properties);
 

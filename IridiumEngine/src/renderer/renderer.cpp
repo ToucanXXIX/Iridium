@@ -12,7 +12,6 @@
 #include "../log.hpp"
 #include "../utils.hpp"
 #include "window.hpp"
-//#include "shader.hpp"
 #include "../assets/shader.hpp"
 #include "../assets/shaderCompiler.hpp"
 
@@ -402,50 +401,6 @@ void Iridium::Renderer::renderer::createDescriptorSetLayout() {
 
 void Iridium::Renderer::renderer::createGraphicsPipeline() {
 	auto& shaderCompiler = *getApplicationPointer()->shaderCompiler;
-
-	std::string vertShader =
-	R"(
-	#version 450
-
-	layout(location = 0) in vec3 inPosition;
-	layout(location = 1) in vec3 inColor;
-	layout(location = 2) in vec2 inUV;
-
-	layout(location = 0) out vec3 fragColor;
-	layout(location = 1) out vec2 UVcoord;
-
-	layout(binding = 0) uniform UniformBufferObject {
-		mat4 viewTransform;
-		mat4 projection;
-		float rendererTime;
-	} ubo;
-	
-	layout(push_constant) uniform pc {
-		mat4 modelTransform;
-	} push;
-
-	void main() {
-		gl_Position = ubo.projection * ubo.viewTransform * push.modelTransform * vec4(inPosition, 1.0);
-		//gl_Position = push.modelTransform * vec4(inPosition, 1.0);
-		fragColor = inColor;
-		UVcoord = inUV;
-	}
-	)" "\0";
-
-	std::string fragmentShader = 
-	R"(
-	#version 450
-
-	layout(location = 0) in vec3 fragColor;
-	layout(location = 1) in vec2 UVcoord;
-
-	layout(location = 0) out vec4 outColor;
-
-	void main() {
-		outColor = vec4(fragColor, 1.0);
-		//outColor = vec4(UVcoord, 1.0, 1.0);
-	}
-	)" "\0";
 
 	std::string missingFragShader =
 	R"(

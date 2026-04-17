@@ -92,9 +92,6 @@ std::vector<uint32_t> Iridium::shader_compiler::compileShaderFromFile(const std:
 	std::vector<uint32_t> spirv{};
 	glslang::TIntermediate* intermediate = program.getIntermediate(EsType);
 
-#ifdef _MSC_VER
-	glslang::GlslangToSpv(*intermediate, spirv); //Other version causes a crash on msvc
-#else
 	glslang::SpvOptions options{
 		.generateDebugInfo = true,
 		.stripDebugInfo = false,
@@ -105,7 +102,7 @@ std::vector<uint32_t> Iridium::shader_compiler::compileShaderFromFile(const std:
 	std::string shaderLogs = logger.getAllMessages();
 	if(!shaderLogs.empty())
 		ENGINE_LOG_INFO("{}", shaderLogs);
-#endif
+
 	ENGINE_LOG_INFO("Finished compiling shader.");
 
 	std::vector<uint32_t> optimizedSpirv{};

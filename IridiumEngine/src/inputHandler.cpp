@@ -189,23 +189,6 @@ Iridium::input_handler::input_handler() {
 	
 	glfwSetCharCallback(window, [](GLFWwindow*, unsigned int codepoint) -> void {
 		input_handler* inputHandler = getInputHandler();
-		
-		// std::vector<char8_t> chars{};
-		// if (codepoint <= 0x7F) {
-    	// 	chars.push_back(static_cast<char8_t>(codepoint));
-    	// } else if (codepoint <= 0x7FF) {
-    	// 	chars.push_back(static_cast<char8_t>(0xC0 | (codepoint >> 6)));
-    	// 	chars.push_back(static_cast<char8_t>(0x80 | (codepoint & 0x3F)));
-    	// } else if (codepoint <= 0xFFFF) {
-    	// 	chars.push_back(static_cast<char8_t>(0xE0 | (codepoint >> 12)));
-    	// 	chars.push_back(static_cast<char8_t>(0x80 | ((codepoint >> 6) & 0x3F)));
-    	// 	chars.push_back(static_cast<char8_t>(0x80 | (codepoint & 0x3F)));
-    	// } else if (codepoint <= 0x10FFFF) {
-    	// 	chars.push_back(static_cast<char8_t>(0xF0 | (codepoint >> 18)));
-    	// 	chars.push_back(static_cast<char8_t>(0x80 | ((codepoint >> 12) & 0x3F)));
-    	// 	chars.push_back(static_cast<char8_t>(0x80 | ((codepoint >>  6) & 0x3F)));
-    	// 	chars.push_back(static_cast<char8_t>(0x80 | (codepoint & 0x3F)));
-    	// }
 
 		{
 			std::scoped_lock<std::mutex> lock(inputHandler->m_textInputMutex);

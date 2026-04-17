@@ -24,5 +24,3 @@ namespace Iridium {
 	};
 }
 int main(int, char**);
-
-int test();

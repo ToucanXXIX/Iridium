@@ -51,7 +51,3 @@ int main(int argc, char** argv) {
 	[[maybe_unused]] Iridium::application& app = createApp();
 	return 0;
 }
-
-int test() {
-	return 42;
-}

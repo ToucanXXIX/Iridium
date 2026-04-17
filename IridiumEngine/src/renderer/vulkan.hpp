@@ -85,38 +85,4 @@ namespace Iridium {
 		//misc
 		void populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 	}
-
-	//old
-	#if 0
-	struct queue_family_indices {
-		std::optional<uint32_t> graphicsFamily;
-		std::optional<uint32_t> computeFamily;
-		std::optional<uint32_t> presentFamily;
-		
-		bool isComplete() const;
-	};
-
-	struct swapchain_support_details {
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
-
-	const std::vector<const char*>& getValidationLayers(); //done
-	const std::vector<const char*>& getDeviceExtensions(); //done
-	
-	std::vector<const char*> getRequiredExtensions(); //done
-	bool checkValidationLayers(); //done
-
-	void populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT& createInfo); //done
-
-	queue_family_indices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-	bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
-
-	swapchain_support_details querySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
-	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes);
-	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
-	#endif
 }
