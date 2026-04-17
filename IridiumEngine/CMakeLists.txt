@@ -46,6 +46,7 @@ target_compile_definitions(IridiumEngine PUBLIC
 )
 
 find_package(Vulkan REQUIRED COMPONENTS SPIRV-Tools)
+find_package(Python3 REQUIRED)
 
 #add_subdirectory(./dependencies/glfw-3.4)
 
@@ -55,11 +56,26 @@ FetchContent_Declare(
 	GIT_TAG main
 )
 set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Disable glslang command-line tools")
-set(ENABLE_SPVREMAPPER OFF CACHE BOOL "Disable SPIR-V remapper")
-set(ENABLE_HLSL OFF CACHE BOOL "Disable HLSL support")
-set(ENABLE_OPT ON CACHE BOOL "disable SPIR-V opt")
+set(ENABLE_OPT ON CACHE BOOL "enable SPIR-V opt")
 
 FetchContent_MakeAvailable(glslang)
+
+execute_process(
+	COMMAND ${Python3_EXECUTABLE} ${glslang_SOURCE_DIR}/update_glslang_sources.py
+	WORKING_DIRECTORY ${glslang_SOURCE_DIR}
+	RESULT_VARIABLE GLSLANG_SCRIPT_RESULT
+    OUTPUT_VARIABLE GLSLANG_SCRIPT_OUTPUT
+    ERROR_VARIABLE  GLSLANG_SCRIPT_ERROR
+)
+
+if(NOT GLSLANG_SCRIPT_RESULT EQUAL 0)
+    message(FATAL_ERROR
+        "glslang setup script failed (exit ${GLSLANG_SCRIPT_RESULT}):\n"
+        "${GLSLANG_SCRIPT_ERROR}"
+    )
+else()
+    message(STATUS "glslang sources updated successfully")
+endif()
 
 FetchContent_Declare(
 	glm
