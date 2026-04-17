@@ -15,13 +15,18 @@ set(ENGINE_RESCOURCES
 	src/inputHandler.hpp
 )
 
+set(ENGINE_ASSETS_RESCOURCES
+	src/assets/shader.cpp
+	src/assets/shader.hpp
+	src/assets/shaderCompiler.cpp
+	src/assets/shaderCompiler.hpp
+)
+
 set(ENGINE_RENDERER_RESCOURCES
 	src/renderer/window.cpp
 	src/renderer/window.hpp
 	src/renderer/vulkan.cpp
 	src/renderer/vulkan.hpp
-	src/renderer/shader.cpp
-	src/renderer/shader.hpp
 	src/renderer/renderer.cpp
 	src/renderer/renderer.hpp
 	src/renderer/vertex.cpp
@@ -30,7 +35,7 @@ set(ENGINE_RENDERER_RESCOURCES
 
 # set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-add_library(IridiumEngine ${ENGINE_RESCOURCES} ${ENGINE_RENDERER_RESCOURCES})
+add_library(IridiumEngine ${ENGINE_RESCOURCES} ${ENGINE_RENDERER_RESCOURCES} ${ENGINE_ASSETS_RESCOURCES})
 
 target_compile_definitions(IridiumEngine PUBLIC
 	GLM_FORCE_RADIANS

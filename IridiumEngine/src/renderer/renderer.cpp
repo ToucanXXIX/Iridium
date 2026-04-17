@@ -12,7 +12,9 @@
 #include "../log.hpp"
 #include "../utils.hpp"
 #include "window.hpp"
-#include "shader.hpp"
+//#include "shader.hpp"
+#include "../assets/shader.hpp"
+#include "../assets/shaderCompiler.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -484,9 +486,9 @@ void Iridium::Renderer::renderer::createGraphicsPipeline() {
 	}
 	)" "\0";
 
-	auto compiledVertShader = shaderCompiler.compileShader({vertShader}, Iridium::shader_type::vertex);
+	auto compiledVertShader = shaderCompiler.compileShaderFromFile({ "./data/shaders/vert.glsl" }, Iridium::shader_type::vertex);
 
-	auto compiledFragShader = shaderCompiler.compileShader({fragmentShader}, Iridium::shader_type::fragment); // default
+	auto compiledFragShader = shaderCompiler.compileShaderFromFile({"./data/shaders/frag.glsl"}, Iridium::shader_type::fragment); // default
 	//auto compiledFragShader = shaderCompiler.compileShader({missingFragShader}, Iridium::shader_type::fragment); // missing texture
 	//auto compiledFragShader = shaderCompiler.compileShader({circleFragShader}, Iridium::shader_type::fragment); // circle
 
@@ -783,7 +785,7 @@ void Iridium::Renderer::renderer::updateUniformBuffer(uint32_t currentImage) {
 	uniform_buffer ubo{};
 	ubo.projection = glm::perspective(glm::radians(45.0f), m_swapchainExtent.width / (float)m_swapchainExtent.height, 0.1f, 10.0f);
 	ubo.rendererTime = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now() - m_rendererStart).count();
-	ubo.viewTransform = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.viewTransform = glm::lookAt(m_cameraPos, glm::vec3(1.0f, 0.0f, 0.0f) + m_cameraPos, glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.projection[1][1] *= -1.0f;
 	memcpy(m_uniformBuffersMapping[currentImage], &ubo, sizeof(uniform_buffer));
 }
@@ -843,7 +845,7 @@ void Iridium::Renderer::renderer::recordCommandBuffer(VkCommandBuffer commandBuf
 
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now() - m_rendererStart).count();
 	push_constants constants{
-		.modelTransform = glm::rotate(glm::mat4(1.0f), glm::degrees(1.0f) * time * 0.01f, glm::vec3(0.0f, 0.0f, 1.0f))
+		.modelTransform = glm::rotate(glm::mat4(1.0f), glm::degrees(1.0f) * time * 0.1f, glm::vec3(0.0f, 0.0f, 1.0f))
 	};
 	vkCmdPushConstants(commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_constants), &constants);
 

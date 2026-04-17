@@ -216,7 +216,7 @@ Iridium::input_handler::input_handler() {
 			inputHandler->m_textInputBuffer[inputHandler->m_textInputBufferCursor] = codepoint;
 			inputHandler->m_textInputBufferCursor += 1;
 		}
-	});
+	});	
 }
 
 Iridium::input_handler::~input_handler() {

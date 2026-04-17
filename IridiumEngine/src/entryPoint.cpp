@@ -8,7 +8,7 @@
 #include "inputHandler.hpp"
 #include "log.hpp"
 #include "renderer/renderer.hpp"
-#include "renderer/shader.hpp"
+#include "assets/shaderCompiler.hpp"
 #include "renderer/window.hpp"
 #include "thread.hpp"
 #include "utils.hpp"
