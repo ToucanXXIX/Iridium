@@ -9,6 +9,7 @@
 * Suitable C/C++ compiler (Tested using clang 19 and msvc 19.44)
 * CMake
 * Vulkan SDK
+* Python 3
 
 ## Quick start guide
 ### Linux
