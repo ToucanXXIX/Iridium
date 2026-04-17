@@ -13,6 +13,10 @@
 #include "thread.hpp"
 #include "utils.hpp"
 
+#ifdef _MSC_VER
+#include <Windows.h>
+#endif
+
 namespace Ir = Iridium;
 
 extern Ir::application& createApp();
@@ -32,6 +36,11 @@ Ir::application::application(Iridium::appinfo& info) {
 extern void entryPoint();
 
 int main(int argc, char** argv) {
+
+#ifdef _MSC_VER
+	SetConsoleOutputCP(65001);
+#endif
+
 	Ir::setThreadName("Main");
 	auto span = std::span(argv, std::next(argv, argc));
 	ENGINE_LOG_INFO("Argumets are:");
@@ -41,19 +50,6 @@ int main(int argc, char** argv) {
 
 	[[maybe_unused]] Iridium::application& app = createApp();
 	return 0;
-
-	try {
-		Iridium::shader_compiler shaderCompiler;
-		Iridium::appinfo info{
-			.name = "rendererTest",
-			.version = {1, 0, 0}
-		};
-		Iridium::Renderer::renderer renderer(info);
-		renderer.testLoop();
-		renderer.cleanup();
-	} catch (std::exception& e) {
-		ENGINE_LOG_ERROR("{}", std::string_view(e.what()));	
-	}
 }
 
 int test() {
