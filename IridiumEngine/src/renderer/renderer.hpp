@@ -42,7 +42,7 @@ namespace Iridium {
 				size_t counter = 0;
 				while(!getWindowManager()->windowShouldClose()) {
 					auto start = clock.now();
-					glfwPollEvents();
+					//glfwPollEvents();
 					drawFrame();
 					
 					glm::vec3 moveVector{};
@@ -71,7 +71,7 @@ namespace Iridium {
 					
 					m_cameraPos += moveVector;
 					if(counter == 2000) {
-						getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
+						//getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
 						counter = 0;
 					}
 					lastFrameTime = clock.now() - start;

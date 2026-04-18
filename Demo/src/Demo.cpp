@@ -1,6 +1,7 @@
 #include "appinfo.hpp"
 #include "entryPoint.hpp"
 
+
 class demo final : public Iridium::application {
 public:
 	Iridium::appinfo& getAppinfo() override {
