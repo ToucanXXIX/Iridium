@@ -11,12 +11,13 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include "glm/geometric.hpp"
+#include "glm/fwd.hpp"
 
 #include "../appinfo.hpp"
-#include "glm/fwd.hpp"
-#include "glm/geometric.hpp"
 #include "vertex.hpp"
 #include "window.hpp"
+#include "../log.hpp"
 
 #include "../inputHandler.hpp"
 
@@ -42,7 +43,7 @@ namespace Iridium {
 				size_t counter = 0;
 				while(!getWindowManager()->windowShouldClose()) {
 					auto start = clock.now();
-					//glfwPollEvents();
+					getWindowManager()->pollEvents();
 					drawFrame();
 					
 					glm::vec3 moveVector{};
@@ -71,7 +72,8 @@ namespace Iridium {
 					
 					m_cameraPos += moveVector;
 					if(counter == 2000) {
-						//getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
+						getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
+						//ENGINE_LOG_INFO("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count());
 						counter = 0;
 					}
 					lastFrameTime = clock.now() - start;
@@ -212,7 +214,9 @@ namespace Iridium {
 			void createSyncObjects();
 			void destroySyncObjects();
 
+		public:
 			void drawFrame();
+		private:
 			//helpers
 			uint32_t findMemoryType(uint32_t filter, VkMemoryPropertyFlags properties);
 

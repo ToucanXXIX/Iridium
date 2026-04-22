@@ -1,12 +1,9 @@
 #include "entryPoint.hpp"
-#include <chrono>
 #include <exception>
 #include <iterator>
 #include <ranges>
-#include <thread>
 #include <vulkan/vulkan_core.h>
 
-#include "GLFW/glfw3.h"
 #include "appinfo.hpp"
 #include "inputHandler.hpp"
 #include "log.hpp"
@@ -31,25 +28,9 @@ Ir::application::application(Iridium::appinfo& info) {
 	windowManager->createWindow(800, 600, info.name);
 	inputHandler = ::new input_handler();
 	shaderCompiler = ::new shader_compiler();
-	renderer = new Renderer::renderer(info);
+	renderer = ::new Renderer::renderer(info);
 
-	try {
-		Iridium::thread_manager threadTest;
-		threadTest.spawnThread("Rndr", [](Renderer::renderer* renderer) -> void {
-			ENGINE_LOG_INFO("STARTING RENDER THREAD");
-			try {
-				renderer->testLoop();
-			} catch(std::exception& e) {
-				ENGINE_LOG_WARN("{}", e.what());
-			}
-			ENGINE_LOG_INFO("EXITING RENDER THREAD");
-		}, renderer);
-	} catch(std::exception& e) {
-		ENGINE_LOG_ERROR("{}", e.what());
-	}
-
-	while(!windowManager->windowShouldClose())
-		glfwPollEvents();
+	renderer->testLoop();
 }
 
 extern void entryPoint();

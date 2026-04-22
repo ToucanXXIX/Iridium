@@ -290,12 +290,12 @@ void Iridium::Renderer::renderer::createSwapchain() {
 }
 
 void Iridium::Renderer::renderer::recreateSwapchain() {
-	GLFWwindow* window = (GLFWwindow*)getApplicationPointer()->windowManager->getWindowHandle();
-
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
+	auto [width, height] = getWindowManager()->framebufferSize();
 	while(width == 0 || height == 0) {
-		glfwGetFramebufferSize(window, &width, &height);
+		ENGINE_LOG_ERROR("Framebuffer width and height are ({}, {})", width, height);
+		auto [newWidth, newHeight] = getWindowManager()->framebufferSize();
+		width = newWidth;
+		height = newHeight;
 		glfwWaitEvents();
 	}
 	vkDeviceWaitIdle(m_device);
