@@ -1,0 +1,29 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Build and Launch Demo (Release)",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/builds/Release/Demo/Demo",
+			"cwd": "${workspaceFolder}",
+			"stopAtEntry": false,
+			"externalConsole": false,
+			"preLaunchTask": "Build Iridium (Release)"
+		},
+		{
+			"name": "Build and Debug Demo",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/builds/Debug/Demo/Demo",
+			"cwd": "${workspaceFolder}",
+			"stopAtEntry": false,
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"preLaunchTask": "Build Iridium (Debug)"
+		}
+	]
+}
