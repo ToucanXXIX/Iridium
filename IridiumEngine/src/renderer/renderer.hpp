@@ -17,7 +17,6 @@
 #include "../appinfo.hpp"
 #include "vertex.hpp"
 #include "window.hpp"
-#include "../log.hpp"
 
 #include "../inputHandler.hpp"
 
@@ -119,6 +118,10 @@ namespace Iridium {
 			VkCommandPool m_commandPool;
 			VkCommandBuffer m_commandBuffers[MAX_FRAMES_IN_FLIGHT];
 			
+			VkImage m_depthImage;
+			VkDeviceMemory m_depthImageMemory;
+			VkImageView m_depthImageView;
+
 			VkSemaphore m_imageAvailableSemaphores[MAX_FRAMES_IN_FLIGHT];
 			VkSemaphore m_renderFinishedSemaphores[MAX_FRAMES_IN_FLIGHT];
 			VkFence m_inFlightFences[MAX_FRAMES_IN_FLIGHT];
@@ -197,6 +200,8 @@ namespace Iridium {
 			
 			void createCommandPool();
 
+			void createDepthResources();
+
 			void createVertexBuffer();
 			void createIndexBuffer();
 			void createUniformBuffers();
@@ -222,6 +227,9 @@ namespace Iridium {
 
 			void createBuffer(size_t size, VkBufferUsageFlags flags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory &memory);
 			void copyBuffer(VkBuffer src, VkBuffer dst, size_t size);
+			
+			void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
+			VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 		};
 
 		renderer* getRenderer();

@@ -82,6 +82,9 @@ namespace Iridium {
 		//Shader
 		VkShaderModule createShaderModule(const std::vector<uint32_t>& compiledShader, VkDevice device);
 
+		//Depth
+		VkFormat findSupportedFormat(VkPhysicalDevice device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
 		//misc
 		void populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 	}

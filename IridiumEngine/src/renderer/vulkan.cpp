@@ -303,6 +303,21 @@ VkShaderModule IrV::createShaderModule(const std::vector<uint32_t>& compiledShad
 	return shaderModule;
 }
 
+// depth
+
+VkFormat IrV::findSupportedFormat(VkPhysicalDevice device, const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+	for(const VkFormat format : candidates) {
+		VkFormatProperties properties{};
+		vkGetPhysicalDeviceFormatProperties(device, format, &properties);
+
+		if(tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
+			return format;
+		else if(tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
+			return format;
+	}
+	throw IrR::renderer_error("Failed to find suitable image format");
+}
+
 // misc
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

@@ -49,8 +49,10 @@ void Iridium::Renderer::renderer::initVulkan() {
 	createRenderPass();
 	createDescriptorSetLayout();
 	createGraphicsPipeline();
+	createDepthResources();
 	createFramebuffers();
 	createCommandPool();
+	createDepthResources();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -101,8 +103,9 @@ void Iridium::Renderer::renderer::createInstance() {
 			layers.push_back(layer);
 	}
 	auto extensions = IrV::getRequiredExtensions();
+	ENGINE_LOG_INFO("Enabled instance extensions:");
 	for(const auto& ext : extensions) {
-		ENGINE_LOG_WARN("Enabled instance extension: {}", ext);
+		ENGINE_LOG_INFO_NP("{}", ext);
 	}
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -304,10 +307,15 @@ void Iridium::Renderer::renderer::recreateSwapchain() {
 	
 	createSwapchain();
 	createImageViews();
+	createDepthResources();
 	createFramebuffers();
 }
 
 void Iridium::Renderer::renderer::cleanupSwapchain() {
+	vkDestroyImageView(m_device, m_depthImageView, nullptr);
+	vkDestroyImage(m_device, m_depthImage, nullptr);
+	vkFreeMemory(m_device, m_depthImageMemory, nullptr);
+	
 	for(auto& framebuffer : m_swapchainFrameBuffers) {
 		vkDestroyFramebuffer(m_device, framebuffer, nullptr);
 	}
@@ -356,23 +364,39 @@ void Iridium::Renderer::renderer::createRenderPass() {
 	colorAttachmentRef.attachment = 0; //references the layout(location = 0) out vec4 outColor !!!
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	VkAttachmentDescription depthAttachment{};
+	depthAttachment.format = Vulkan::findSupportedFormat(m_physicalDevice, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef{};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 	VkSubpassDependency dependency{};
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+	dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
+	std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
 	VkRenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.attachmentCount = attachments.size();
+	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 	renderPassInfo.dependencyCount = 1;
@@ -545,6 +569,18 @@ void Iridium::Renderer::renderer::createGraphicsPipeline() {
 	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
+	VkPipelineDepthStencilStateCreateInfo depthStencil{};
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.minDepthBounds = 0.0f;
+	depthStencil.maxDepthBounds = 1.0f;
+	depthStencil.stencilTestEnable = VK_FALSE;
+	depthStencil.front = {};
+	depthStencil.back = {};
+
 	VkPipelineColorBlendStateCreateInfo colorBlending{};
 	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	colorBlending.logicOpEnable = VK_FALSE;
@@ -574,7 +610,7 @@ void Iridium::Renderer::renderer::createGraphicsPipeline() {
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.layout = m_pipelineLayout;
@@ -591,15 +627,16 @@ void Iridium::Renderer::renderer::createGraphicsPipeline() {
 void Iridium::Renderer::renderer::createFramebuffers() {
 	m_swapchainFrameBuffers.resize(m_swapchainImageViews.size());
 	for(size_t iterator = 0; iterator < m_swapchainImageViews.size(); iterator++) {
-		VkImageView attachments[] = {
-			m_swapchainImageViews[iterator]
+		std::array<VkImageView, 2> attachments = {
+			m_swapchainImageViews[iterator],
+			m_depthImageView
 		};
 
 		VkFramebufferCreateInfo frambufferInfo{};
 		frambufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		frambufferInfo.renderPass = m_renderPass;
-		frambufferInfo.attachmentCount = 1;
-		frambufferInfo.pAttachments = attachments;
+		frambufferInfo.attachmentCount = attachments.size();
+		frambufferInfo.pAttachments = attachments.data();
 		frambufferInfo.width = m_swapchainExtent.width;
 		frambufferInfo.height = m_swapchainExtent.height;
 		frambufferInfo.layers = 1;
@@ -621,6 +658,13 @@ void Iridium::Renderer::renderer::createCommandPool() {
 	if(vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool) != VK_SUCCESS)
 		throw Iridium::Renderer::renderer_error("Failed to create command pool.");
 
+}
+
+void Iridium::Renderer::renderer::createDepthResources() {
+	VkFormat depthFormat = Vulkan::findSupportedFormat(m_physicalDevice, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+	createImage(m_swapchainExtent.width, m_swapchainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
+	m_depthImageView = createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void Iridium::Renderer::renderer::createVertexBuffer() {
@@ -770,9 +814,12 @@ void Iridium::Renderer::renderer::recordCommandBuffer(VkCommandBuffer commandBuf
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = m_swapchainExtent;
 	
-	VkClearValue clearColor = {{{0.05f, 0.05f, 0.07f, 1.0f}}};
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColor;
+	std::array<VkClearValue, 2> clearValues{};
+	clearValues[0].color = {{0.05f, 0.05f, 0.07f, 1.0f}};
+	clearValues[1].depthStencil = {1.0f, 0};
+
+	renderPassInfo.clearValueCount = clearValues.size();
+	renderPassInfo.pClearValues = clearValues.data();
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
@@ -991,6 +1038,61 @@ void Iridium::Renderer::renderer::copyBuffer(VkBuffer src, VkBuffer dst, size_t 
 	vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(m_graphicsQueue);
 	vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+}
+
+void Iridium::Renderer::renderer::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory) {
+	VkExtent3D extent{width, height, 1};
+	
+	VkImageCreateInfo imageInfo{};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent = extent;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = format;
+	imageInfo.tiling = tiling;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = usage;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if(vkCreateImage(m_device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+		throw renderer_error("Failed to create image");
+	}
+
+	VkMemoryRequirements requiremnts{};
+	vkGetImageMemoryRequirements(m_device, image, &requiremnts);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = requiremnts.size;
+	allocInfo.memoryTypeIndex = findMemoryType(requiremnts.memoryTypeBits, properties);
+
+	if (vkAllocateMemory(m_device, &allocInfo, nullptr, &memory) != VK_SUCCESS) {
+		throw renderer_error("Failed to allocate image memory");
+	}
+
+	vkBindImageMemory(m_device, image, memory, 0);
+}
+
+VkImageView Iridium::Renderer::renderer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+	VkImageViewCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	createInfo.image = image;
+	createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	createInfo.format = format;
+	createInfo.subresourceRange.aspectMask = aspectFlags;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = 1;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.layerCount = 1;
+
+	VkImageView imageView;
+	if(vkCreateImageView(m_device, &createInfo, nullptr, &imageView) != VK_SUCCESS) {
+		throw renderer_error("Failed to create image view");
+	}
+
+	return imageView;
 }
 
 Iridium::Renderer::renderer* Iridium::Renderer::getRenderer() {

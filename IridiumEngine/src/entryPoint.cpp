@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 	SetConsoleOutputCP(65001);
 #endif
 
-	Ir::setThreadName("Main");
+	Ir::setThreadName("Main/Render");
 	auto span = std::span(argv, std::next(argv, argc));
 	ENGINE_LOG_INFO("Argumets are:");
 	for(auto [index, option] : std::views::enumerate(span)) {
@@ -50,7 +50,8 @@ int main(int argc, char** argv) {
 	try {
 		[[maybe_unused]] Iridium::application& app = createApp();
 	} catch (std::exception& e) {
-		ENGINE_LOG_FATAL("Oh Fiddlesticks! What now? \n{}", e.what());
+		ENGINE_LOG_FATAL("Oh Fiddlesticks! What now?");
+		ENGINE_LOG_FATAL_NP("{}", e.what());
 	}
 	return 0;
 }
