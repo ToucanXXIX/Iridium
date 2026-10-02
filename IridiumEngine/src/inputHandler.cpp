@@ -7,7 +7,6 @@
 #include <mutex>
 
 #include "renderer/window.hpp"
-#include "renderer/renderer.hpp"
 #include "utils.hpp"
 
 static Iridium::keyboard_key glfwKeyToIrKey(int key) {
@@ -158,32 +157,12 @@ Iridium::input_handler::input_handler() {
 			getInputHandler()->m_keyStateArray[glfwKeyToIrKey(key)] = false;
 		}
 
-		if(key == GLFW_KEY_R && action == GLFW_PRESS)
-			Renderer::getRenderer()->drawWireframe = !Renderer::getRenderer()->drawWireframe;
-
-		else if(key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
-			auto unicodeText = getInputHandler()->getTextInputAndClear();
-			std::vector<char> utf8Text{};
-			for(const auto& codepoint : unicodeText) {
-				if(codepoint <= 0x7F) {
-					utf8Text.push_back(static_cast<char>(codepoint));
-				} else if(codepoint <= 0x7FF) {
-					utf8Text.push_back(static_cast<char>(0xC0 | (codepoint >> 6)));
-					utf8Text.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
-				} else if(codepoint <= 0xFFFF) {
-					utf8Text.push_back(static_cast<char>(0xE0 | (codepoint >> 12)));
-					utf8Text.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
-					utf8Text.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
-				} else if(codepoint <= 0x10FFFF) {
-					utf8Text.push_back(static_cast<char>(0xF0 | (codepoint >> 18)));
-					utf8Text.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F)));
-					utf8Text.push_back(static_cast<char>(0x80 | ((codepoint >>  6) & 0x3F)));
-					utf8Text.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
-				}
-			}
-			utf8Text.push_back('\0');
-			ENGINE_LOG_ERROR("{}", utf8Text.data());
-		}
+		//else if(key == GLFW_KEY_ENTER && action == GLFW_PRESS) {
+		//	auto unicodeText = getInputHandler()->getTextInputAndClear();
+		//	std::vector<char> utf8Text = unicodeToUTF8(unicodeText);
+		//	utf8Text.push_back('\0');
+		//	ENGINE_LOG_ERROR("{}", utf8Text.data());
+		//}
 	});
 
 	
@@ -220,6 +199,12 @@ std::vector<char32_t> Iridium::input_handler::getTextInputAndClear() {
 		m_textInputBufferCursor = 0;
 	}
 	return text;
+}
+
+void Iridium::input_handler::ClearTextInput() {
+	std::scoped_lock<std::mutex> lock(m_textInputMutex);
+	memset(m_textInputBuffer, '\0', m_textInputBufferSize);
+	m_textInputBufferCursor = 0;
 }
 
 bool Iridium::input_handler::isKeyPressed(Iridium::keyboard_key key) {

@@ -19,6 +19,7 @@ namespace Iridium {
 		class input_handler* inputHandler;
 		class shader_compiler* shaderCompiler;
 		class window_manager* windowManager;
+		class thread_manager* threadManager;
 
 		application(Iridium::appinfo& info);
 	};

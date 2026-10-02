@@ -142,6 +142,7 @@ namespace Iridium {
 		~input_handler();
 
 		std::vector<char32_t> getTextInputAndClear();
+		void ClearTextInput();
 		
 		bool isKeyPressed(keyboard_key key);
 

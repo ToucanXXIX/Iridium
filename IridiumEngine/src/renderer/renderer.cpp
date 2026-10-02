@@ -141,10 +141,8 @@ void Iridium::Renderer::renderer::createSurface() {
 }
 
 void Iridium::Renderer::renderer::setWindowCallbacks() {
-	GLFWwindow* window = (GLFWwindow*)getWindowManager()->getWindowHandle();
-	glfwSetFramebufferSizeCallback(window, [](GLFWwindow*, int, int) -> void {
-		renderer* renderer = getApplicationPointer()->renderer;
-		renderer->m_framebufferResized = true;
+	getWindowManager()->setFramebufferResizeCallback([&](int, int) -> void {
+		m_framebufferResized = true;
 	});
 }
 
@@ -299,7 +297,6 @@ void Iridium::Renderer::renderer::recreateSwapchain() {
 		auto [newWidth, newHeight] = getWindowManager()->framebufferSize();
 		width = newWidth;
 		height = newHeight;
-		glfwWaitEvents();
 	}
 	vkDeviceWaitIdle(m_device);
 
@@ -954,6 +951,14 @@ void Iridium::Renderer::renderer::drawFrame() {
 	}
 
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void Iridium::Renderer::renderer::setCameraPos(glm::vec3 pos) {
+	m_cameraPos = pos;
+}
+
+glm::vec3 Iridium::Renderer::renderer::getCameraPos() {
+	return m_cameraPos;
 }
 
 uint32_t Iridium::Renderer::renderer::findMemoryType(uint32_t filter, VkMemoryPropertyFlags properties) {

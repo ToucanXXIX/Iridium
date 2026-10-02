@@ -6,9 +6,8 @@
 #include <vector>
 
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
 
-#include <GLFW/glfw3.h>
+//#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include "glm/geometric.hpp"
@@ -17,6 +16,8 @@
 #include "../appinfo.hpp"
 #include "vertex.hpp"
 #include "window.hpp"
+#include "../log.hpp"
+#include "../utils.hpp"
 
 #include "../inputHandler.hpp"
 
@@ -40,6 +41,7 @@ namespace Iridium {
 				auto clock = std::chrono::steady_clock();
 				auto lastFrameTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(std::chrono::milliseconds(1));
 				size_t counter = 0;
+				
 				while(!getWindowManager()->windowShouldClose()) {
 					auto start = clock.now();
 					getWindowManager()->pollEvents();
@@ -68,13 +70,35 @@ namespace Iridium {
 						moveVector = glm::normalize(moveVector);
 					}
 					moveVector *= lastFrameTime.count() * 0.01f;
+
+					static bool heldR = false;
+					if(getInputHandler()->isKeyPressed(KEY_R)) {
+						if(!heldR)
+							drawWireframe = !drawWireframe;
+						heldR = true;
+					} else {
+						heldR = false;
+					}
+
+					static bool heldEnt = false;
+					if(getInputHandler()->isKeyPressed(KEY_ENTER)) {
+						if(!heldEnt) {
+							auto unicodeText = getInputHandler()->getTextInputAndClear();
+							std::vector<char> utf8Text = unicodeToUTF8(unicodeText);
+							utf8Text.push_back('\0');
+							ENGINE_LOG_ERROR("{}", utf8Text.data());
+						}
+						heldEnt = true;
+					} else {
+						heldEnt = false;
+					}
 					
 					m_cameraPos += moveVector;
 					if(counter == 2000) {
 						getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
-						//ENGINE_LOG_INFO("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count());
 						counter = 0;
 					}
+
 					lastFrameTime = clock.now() - start;
 					counter++;
 				}
@@ -221,6 +245,8 @@ namespace Iridium {
 
 		public:
 			void drawFrame();
+			void setCameraPos(glm::vec3 pos);
+			glm::vec3 getCameraPos();
 		private:
 			//helpers
 			uint32_t findMemoryType(uint32_t filter, VkMemoryPropertyFlags properties);
