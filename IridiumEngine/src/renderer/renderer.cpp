@@ -891,6 +891,8 @@ void Iridium::Renderer::renderer::destroySyncObjects() {
 }
 
 void Iridium::Renderer::renderer::drawFrame() {
+	m_cameraPos = glm::mix(m_cameraPos, m_targetCameraPos, m_interpolationRatio);
+
 	vkWaitForFences(m_device, 1, &m_presentFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 	vkResetFences(m_device, 1, &m_presentFences[m_currentFrame]);
 
@@ -954,7 +956,7 @@ void Iridium::Renderer::renderer::drawFrame() {
 }
 
 void Iridium::Renderer::renderer::setCameraPos(glm::vec3 pos) {
-	m_cameraPos = pos;
+	m_targetCameraPos = pos;
 }
 
 glm::vec3 Iridium::Renderer::renderer::getCameraPos() {

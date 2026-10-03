@@ -2,24 +2,15 @@
 
 #include <chrono>
 #include <cstdint>
-#include <ratio>
 #include <vector>
 
 #include <vulkan/vulkan.h>
 
-//#include <GLFW/glfw3.h>
-
 #include <glm/glm.hpp>
-#include "glm/geometric.hpp"
 #include "glm/fwd.hpp"
 
 #include "../appinfo.hpp"
 #include "vertex.hpp"
-#include "window.hpp"
-#include "../log.hpp"
-#include "../utils.hpp"
-
-#include "../inputHandler.hpp"
 
 namespace Iridium {
 	namespace Renderer {
@@ -37,79 +28,12 @@ namespace Iridium {
 		public:
 			renderer(appinfo& info);
 
-			void inline testLoop() {
-				auto clock = std::chrono::steady_clock();
-				auto lastFrameTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(std::chrono::milliseconds(1));
-				size_t counter = 0;
-				
-				while(!getWindowManager()->windowShouldClose()) {
-					auto start = clock.now();
-					getWindowManager()->pollEvents();
-					drawFrame();
-					
-					glm::vec3 moveVector{};
-					if(getInputHandler()->isKeyPressed(KEY_W)) {
-						moveVector += glm::vec3(1.0, 0.0, 0.0);
-					}
-					if(getInputHandler()->isKeyPressed(KEY_S)) {
-						moveVector += glm::vec3(-1.0, 0.0, 0.0);
-					}
-					if(getInputHandler()->isKeyPressed(KEY_A)) {
-						moveVector += glm::vec3(0.0, 1.0, 0.0);
-					}
-					if(getInputHandler()->isKeyPressed(KEY_D)) {
-						moveVector += glm::vec3(0.0, -1.0, 0.0);
-					}
-					if(getInputHandler()->isKeyPressed(KEY_SPACE)) {
-						moveVector += glm::vec3(0.0, 0.0, 1.0);
-					}
-					if(getInputHandler()->isKeyPressed(KEY_RCONTROL) || getInputHandler()->isKeyPressed(KEY_LCONTROL)) {
-						moveVector += glm::vec3(0.0, 0.0, -1.0);
-					}
-					if(glm::length(moveVector)) {
-						moveVector = glm::normalize(moveVector);
-					}
-					moveVector *= lastFrameTime.count() * 0.01f;
-
-					static bool heldR = false;
-					if(getInputHandler()->isKeyPressed(KEY_R)) {
-						if(!heldR)
-							drawWireframe = !drawWireframe;
-						heldR = true;
-					} else {
-						heldR = false;
-					}
-
-					static bool heldEnt = false;
-					if(getInputHandler()->isKeyPressed(KEY_ENTER)) {
-						if(!heldEnt) {
-							auto unicodeText = getInputHandler()->getTextInputAndClear();
-							std::vector<char> utf8Text = unicodeToUTF8(unicodeText);
-							utf8Text.push_back('\0');
-							ENGINE_LOG_ERROR("{}", utf8Text.data());
-						}
-						heldEnt = true;
-					} else {
-						heldEnt = false;
-					}
-					
-					m_cameraPos += moveVector;
-					if(counter == 2000) {
-						getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
-						counter = 0;
-					}
-
-					lastFrameTime = clock.now() - start;
-					counter++;
-				}
-				//vkDeviceWaitIdle(m_device);
-			}
-
 			void inline cleanup() {
 				cleanupVulkan();
 			}
 
 			bool drawWireframe = false;
+			float m_interpolationRatio = 0.0f;
 		private:
 			enum { //constants
 				MAX_FRAMES_IN_FLIGHT = 3
@@ -190,7 +114,8 @@ namespace Iridium {
 				6, 7, 4,
 			};
 
-			glm::vec3 m_cameraPos{-1.0, 0.0, 0.5};
+			glm::vec3 m_targetCameraPos{};
+			glm::vec3 m_cameraPos{};
 			
 			void initVulkan();
 			void cleanupVulkan();

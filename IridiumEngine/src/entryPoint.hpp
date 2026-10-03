@@ -7,7 +7,6 @@ namespace Iridium {
 	namespace Renderer {
 		class renderer;
 	}
-	// -fwd
 
 	class application {
 	private:

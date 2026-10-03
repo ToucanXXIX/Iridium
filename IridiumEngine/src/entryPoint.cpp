@@ -3,7 +3,6 @@
 #include <exception>
 #include <iterator>
 #include <ranges>
-#include <thread>
 #include <vulkan/vulkan_core.h>
 
 #include "appinfo.hpp"
@@ -32,13 +31,34 @@ Ir::application::application(Iridium::appinfo& info) {
 	inputHandler = ::new input_handler();
 	shaderCompiler = ::new shader_compiler();
 	renderer = ::new Renderer::renderer(info);
+	auto lastFrameTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(std::chrono::milliseconds(1));
+	auto lastTickTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(std::chrono::milliseconds(1));
 	threadManager->spawnThread("Render", [&]() -> void {
 		ENGINE_LOG_INFO("Starting render thread.");
-		while(!windowManager->windowShouldClose())
-			renderer->drawFrame();
+
+		auto clock = std::chrono::steady_clock();
+		size_t counter = 0;
+		while(!windowManager->windowShouldClose()) {
+			auto start = clock.now();
+			renderer->drawFrame();	
+			lastFrameTime = clock.now() - start;
+			auto interpolationRatio = (lastFrameTime / lastTickTime);
+			renderer->m_interpolationRatio = interpolationRatio;
+			ENGINE_LOG_ERROR("INTERPOLATION RATIO: {}", interpolationRatio);
+			if(counter == 2000) {
+				getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
+				counter = 0;
+			}
+			counter++;
+		}
 	});
 
+	auto clock = std::chrono::steady_clock();
+	size_t counter = 0;
+	glm::vec3 pos{0.0f, 0.0f, 0.0f};
 	while(!windowManager->windowShouldClose()) {
+		auto start = clock.now();
+
 		windowManager->pollEvents();
 		glm::vec3 moveVector{};
 		if(getInputHandler()->isKeyPressed(KEY_W)) {
@@ -85,9 +105,16 @@ Ir::application::application(Iridium::appinfo& info) {
 			heldEnt = false;
 		}
 
-		moveVector *= 0.01f;
-		renderer->setCameraPos(renderer->getCameraPos() + moveVector);
-		//std::this_thread::sleep_for(std::chrono::seconds(1));
+		moveVector *= 0.1f;
+		pos += moveVector;
+		renderer->setCameraPos(pos);
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));	
+		lastTickTime = clock.now() - start;
+		if(counter == 200) {
+			ENGINE_LOG_INFO("TPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastTickTime).count());
+			counter = 0;
+		}
+		counter++;
 	};
 }
 
