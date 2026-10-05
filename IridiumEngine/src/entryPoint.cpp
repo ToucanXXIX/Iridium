@@ -16,6 +16,8 @@
 
 #ifdef _MSC_VER
 #include <Windows.h>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
 #endif
 
 namespace Ir = Iridium;
@@ -44,7 +46,7 @@ Ir::application::application(Iridium::appinfo& info) {
 			lastFrameTime = clock.now() - start;
 			auto interpolationRatio = (lastFrameTime / lastTickTime);
 			renderer->m_interpolationRatio = interpolationRatio;
-			ENGINE_LOG_ERROR("INTERPOLATION RATIO: {}", interpolationRatio);
+			//ENGINE_LOG_ERROR("INTERPOLATION RATIO: {}", interpolationRatio);
 			if(counter == 2000) {
 				getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
 				counter = 0;
@@ -98,17 +100,17 @@ Ir::application::application(Iridium::appinfo& info) {
 				auto unicodeText = getInputHandler()->getTextInputAndClear();
 				std::vector<char> utf8Text = unicodeToUTF8(unicodeText);
 				utf8Text.push_back('\0');
-				ENGINE_LOG_ERROR("{}", utf8Text.data());
+				ENGINE_LOG_ERROR("{}", (char*)utf8Text.data());
 			}
 			heldEnt = true;
 		} else {
 			heldEnt = false;
 		}
 
-		moveVector *= 0.1f;
+		moveVector *= 0.001f * lastTickTime.count();
 		pos += moveVector;
 		renderer->setCameraPos(pos);
-		std::this_thread::sleep_for(std::chrono::milliseconds(50));	
+		std::this_thread::sleep_for(std::chrono::milliseconds(50)); // No sleep causes weird issue
 		lastTickTime = clock.now() - start;
 		if(counter == 200) {
 			ENGINE_LOG_INFO("TPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastTickTime).count());
@@ -123,6 +125,7 @@ extern void entryPoint();
 int main(int argc, char** argv) {
 #ifdef _MSC_VER
 	SetConsoleOutputCP(65001);
+	timeBeginPeriod(1);
 #endif
 
 	Ir::setThreadName("Main");
@@ -138,5 +141,9 @@ int main(int argc, char** argv) {
 		ENGINE_LOG_FATAL("Oh Fiddlesticks! What now?");
 		ENGINE_LOG_FATAL_NP("{}", e.what());
 	}
+
+#ifdef _MSC_VER
+	timeEndPeriod(1);
+#endif
 	return 0;
 }
