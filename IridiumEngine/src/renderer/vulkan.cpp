@@ -29,13 +29,13 @@ const std::vector<const char*> validationLayers = {
 };
 
 const std::vector<const char*> instanceExtensions = {
-	"VK_KHR_surface_maintenance1",
+	"VK_EXT_surface_maintenance1", // this can be either VK_EXT_... or VK_KHR_... depending on driver
 	"VK_KHR_get_surface_capabilities2"
 };
 
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	"VK_KHR_swapchain_maintenance1",
+	"VK_EXT_swapchain_maintenance1", // ditto as above
 	"VK_EXT_extended_dynamic_state3",
 	VK_EXT_SHADER_OBJECT_EXTENSION_NAME
 };
