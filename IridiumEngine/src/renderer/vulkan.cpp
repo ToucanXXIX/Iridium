@@ -29,13 +29,13 @@ const std::vector<const char*> validationLayers = {
 };
 
 const std::vector<const char*> instanceExtensions = {
-	"VK_EXT_surface_maintenance1",
+	"VK_KHR_surface_maintenance1",
 	"VK_KHR_get_surface_capabilities2"
 };
 
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	"VK_EXT_swapchain_maintenance1",
+	"VK_KHR_swapchain_maintenance1",
 	"VK_EXT_extended_dynamic_state3",
 	VK_EXT_SHADER_OBJECT_EXTENSION_NAME
 };
@@ -237,10 +237,23 @@ VkSurfaceFormatKHR IrV::chooseSwapSurfaceFormat(const std::vector<VkSurfaceForma
 }
 
 VkPresentModeKHR IrV::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
+	ENGINE_LOG_ERROR("Available present modes:");
+	for (const auto& mode : presentModes) {
+		ENGINE_LOG_ERROR_NP("-> {}", (size_t)mode);
+	}
 	for(const auto& mode : presentModes) {
-		if(mode == VK_PRESENT_MODE_MAILBOX_KHR)
+		if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+			ENGINE_LOG_INFO("Using mailbox present mode!");
 			return mode;
 		}
+	}
+	for (const auto& mode : presentModes) {
+		if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+			ENGINE_LOG_WARN("Using immediate present mode!");
+			return mode;
+		}
+	}
+	ENGINE_LOG_WARN("Using FIFO present mode!");
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
