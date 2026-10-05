@@ -59,7 +59,7 @@ FetchContent_Declare(
 set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Disable glslang command-line tools")
 set(ENABLE_OPT ON CACHE BOOL "enable SPIR-V opt")
 
-FetchContent_MakeAvailable(glslang)
+FetchContent_Populate(glslang)
 
 execute_process(
 	COMMAND ${Python3_EXECUTABLE} ${glslang_SOURCE_DIR}/update_glslang_sources.py
@@ -69,6 +69,8 @@ execute_process(
     ERROR_VARIABLE  GLSLANG_SCRIPT_ERROR
 )
 
+# FetchContent_MakeAvailable(glslang)
+
 if(NOT GLSLANG_SCRIPT_RESULT EQUAL 0)
     message(FATAL_ERROR
         "glslang setup script failed (exit ${GLSLANG_SCRIPT_RESULT}):\n"
@@ -77,6 +79,11 @@ if(NOT GLSLANG_SCRIPT_RESULT EQUAL 0)
 else()
     message(STATUS "glslang sources updated successfully")
 endif()
+
+add_subdirectory(
+	${glslang_SOURCE_DIR} 
+	${glslang_BINARY_DIR}
+)
 
 FetchContent_Declare(
 	glm
