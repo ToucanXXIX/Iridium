@@ -64,7 +64,7 @@ std::string Iridium::Logger::getPrefix(severity level) {
 		case WARN:
 			levelStr = CONSOLE_TEXT_YELLOW "[Warn]";
 			break;
-		case ERROR:
+		case ERR:
 			levelStr = CONSOLE_TEXT_LIGHTRED "[Error]";
 			break;
 		case FATAL:
@@ -86,7 +86,7 @@ std::string Iridium::Logger::getPrefix(severity level, empty_prefix) {
 		case WARN:
 			levelStr = CONSOLE_TEXT_YELLOW "      ";
 			break;
-		case ERROR:
+		case ERR:
 			levelStr = CONSOLE_TEXT_LIGHTRED "       ";
 			break;
 		case FATAL:
