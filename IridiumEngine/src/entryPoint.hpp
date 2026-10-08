@@ -9,10 +9,14 @@ namespace Iridium {
 	}
 
 	class application {
+		friend int main(int argc, char** argv);
+
 	private:
-		
-	public:
+		float m_lastTickTime = 1; //milliseconds
+
+		public:
 		virtual appinfo& getAppinfo() = 0;
+		virtual void onTick(float dt) = 0;
 
 		Renderer::renderer* renderer;
 		class input_handler* inputHandler;
@@ -21,6 +25,8 @@ namespace Iridium {
 		class thread_manager* threadManager;
 
 		application(Iridium::appinfo& info);
+
+		void run();
 	};
 }
 int main(int, char**);

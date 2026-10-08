@@ -33,91 +33,25 @@ Ir::application::application(Iridium::appinfo& info) {
 	inputHandler = ::new input_handler();
 	shaderCompiler = ::new shader_compiler();
 	renderer = ::new Renderer::renderer(info);
-	auto lastFrameTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(std::chrono::milliseconds(1));
-	auto lastTickTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(std::chrono::milliseconds(1));
+	
 	threadManager->spawnThread("Render", [&]() -> void {
 		ENGINE_LOG_INFO("Starting render thread.");
-
-		auto clock = std::chrono::steady_clock();
-		size_t counter = 0;
 		while(!windowManager->windowShouldClose()) {
-			auto start = clock.now();
 			renderer->drawFrame();	
-			lastFrameTime = clock.now() - start;
-			auto interpolationRatio = (lastFrameTime / lastTickTime);
+			auto interpolationRatio = std::min((renderer->m_lastFrameTime / m_lastTickTime), 1.0f);
 			renderer->m_interpolationRatio = interpolationRatio;
 			//ENGINE_LOG_ERROR("INTERPOLATION RATIO: {}", interpolationRatio);
-			if(counter == 2000) {
-				getWindowManager()->setWindowName(std::format("FPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastFrameTime).count()).c_str());
-				counter = 0;
-			}
-			counter++;
 		}
 	});
+}
 
-	auto clock = std::chrono::steady_clock();
-	size_t counter = 0;
-	glm::vec3 pos{0.0f, 0.0f, 0.0f};
+void Ir::application::run() {
+	auto clock = std::chrono::high_resolution_clock();
 	while(!windowManager->windowShouldClose()) {
 		auto start = clock.now();
-
-		windowManager->pollEvents();
-		glm::vec3 moveVector{};
-		if(getInputHandler()->isKeyPressed(KEY_W)) {
-			moveVector += glm::vec3(1.0, 0.0, 0.0);
-		}
-		if(getInputHandler()->isKeyPressed(KEY_S)) {
-			moveVector += glm::vec3(-1.0, 0.0, 0.0);
-		}
-		if(getInputHandler()->isKeyPressed(KEY_A)) {
-			moveVector += glm::vec3(0.0, 1.0, 0.0);
-		}
-		if(getInputHandler()->isKeyPressed(KEY_D)) {
-			moveVector += glm::vec3(0.0, -1.0, 0.0);
-		}
-		if(getInputHandler()->isKeyPressed(KEY_SPACE)) {
-			moveVector += glm::vec3(0.0, 0.0, 1.0);
-		}
-		if(getInputHandler()->isKeyPressed(KEY_RCONTROL) || getInputHandler()->isKeyPressed(KEY_LCONTROL)) {
-			moveVector += glm::vec3(0.0, 0.0, -1.0);
-		}
-		if(glm::length(moveVector)) {
-			moveVector = glm::normalize(moveVector);
-		}
-
-		static bool heldR = false;
-		if(getInputHandler()->isKeyPressed(KEY_R)) {
-			if(!heldR)
-				renderer->drawWireframe = !renderer->drawWireframe;
-			heldR = true;
-		} else {
-			heldR = false;
-		}
-
-		static bool heldEnt = false;
-		if(getInputHandler()->isKeyPressed(KEY_ENTER)) {
-			if(!heldEnt) {
-				auto unicodeText = getInputHandler()->getTextInputAndClear();
-				std::vector<char> utf8Text = unicodeToUTF8(unicodeText);
-				utf8Text.push_back('\0');
-				ENGINE_LOG_ERROR("{}", (char*)utf8Text.data());
-			}
-			heldEnt = true;
-		} else {
-			heldEnt = false;
-		}
-
-		moveVector *= 0.001f * lastTickTime.count();
-		pos += moveVector;
-		renderer->setCameraPos(pos);
-		std::this_thread::sleep_for(std::chrono::milliseconds(50)); // No sleep causes weird issue
-		lastTickTime = clock.now() - start;
-		if(counter == 200) {
-			ENGINE_LOG_INFO("TPS: {}", 1.0f / std::chrono::duration_cast<std::chrono::duration<double>>(lastTickTime).count());
-			counter = 0;
-		}
-		counter++;
-	};
+		onTick(m_lastTickTime);
+		m_lastTickTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(clock.now() - start).count();
+	}
 }
 
 extern void entryPoint();
@@ -137,6 +71,7 @@ int main(int argc, char** argv) {
 
 	try {
 		[[maybe_unused]] Iridium::application& app = createApp();
+		app.run();
 	} catch (std::exception& e) {
 		ENGINE_LOG_FATAL("Oh Fiddlesticks! What now?");
 		ENGINE_LOG_FATAL_NP("{}", e.what());

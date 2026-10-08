@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
+#include <ratio>
 #include <set>
 #include <ranges>
 
@@ -102,11 +103,13 @@ void Iridium::Renderer::renderer::createInstance() {
 		for(const auto layer : Iridium::Vulkan::getValidationLayers())
 			layers.push_back(layer);
 	}
+
 	auto extensions = IrV::getRequiredExtensions();
 	ENGINE_LOG_INFO("Enabled instance extensions:");
 	for(const auto& ext : extensions) {
 		ENGINE_LOG_INFO_NP("{}", ext);
 	}
+
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
@@ -117,7 +120,7 @@ void Iridium::Renderer::renderer::createInstance() {
 
 	VkResult createResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
 	if(createResult != VK_SUCCESS) {
-		throw Iridium::Renderer::renderer_error(std::format("Failed to create vk instance with error code: {}", (size_t)createResult));
+		throw Iridium::Renderer::renderer_error(std::format("Failed to create vk instance with error code: {}", (int64_t)createResult));
 	}
 }
 
@@ -891,6 +894,8 @@ void Iridium::Renderer::renderer::destroySyncObjects() {
 }
 
 void Iridium::Renderer::renderer::drawFrame() {
+	auto clock = std::chrono::steady_clock();
+	auto start = clock.now();
 	m_cameraPos = glm::mix(m_cameraPos, m_targetCameraPos, m_interpolationRatio);
 
 	vkWaitForFences(m_device, 1, &m_presentFences[m_currentFrame], VK_TRUE, UINT64_MAX);
@@ -953,6 +958,8 @@ void Iridium::Renderer::renderer::drawFrame() {
 	}
 
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	auto time = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(clock.now() - start);
+	m_lastFrameTime = time.count();
 }
 
 void Iridium::Renderer::renderer::setCameraPos(glm::vec3 pos) {

@@ -33,6 +33,7 @@ namespace Iridium {
 			}
 
 			bool drawWireframe = false;
+			float m_lastFrameTime = 0.0f; // milliseconds
 			float m_interpolationRatio = 0.0f;
 		private:
 			enum { //constants

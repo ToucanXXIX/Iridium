@@ -25,7 +25,7 @@ IrR::renderer_error::renderer_error(const std::string& what) : std::runtime_erro
 //Constants
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation",
-	//"VK_LAYER_MESA_overlay"
+	"VK_LAYER_MESA_overlay"
 };
 
 const std::vector<const char*> instanceExtensions = {
@@ -164,12 +164,31 @@ std::vector<const char*> IrV::getRequiredExtensions() {
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+	
 	if constexpr(USE_VALIDATION_LAYERS) {
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 	}
+
+#if 1
+	uint32_t presentExtensionsCount = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr, &presentExtensionsCount, nullptr);
+	std::vector<VkExtensionProperties> presentExtensions(presentExtensionsCount);
+	vkEnumerateInstanceExtensionProperties(nullptr, &presentExtensionsCount, presentExtensions.data());
+	for(const auto& extension : presentExtensions) {
+		std::string_view extensionName(extension.extensionName);
+		if(extensionName == "VK_KHR_get_surface_capabilities2") {
+			extensions.push_back("VK_KHR_get_surface_capabilities2");	
+		} else if(extensionName == "VK_EXT_surface_maintenance1") {
+			extensions.push_back("VK_EXT_surface_maintenance1");
+		} else if(extensionName == "VK_KHR_surface_maintenance1") {
+			extensions.push_back("VK_KHR_surface_maintenance1");
+		}
+	}
+#else
 	for(const auto extension : instanceExtensions) {
 		extensions.push_back(extension);
 	}
+#endif
 	return extensions;
 }
 

@@ -8,6 +8,5 @@ std::string_view Iridium::getThreadName() noexcept {
 
 void Iridium::setThreadName(const std::string& threadName) {
 	g_threadName = threadName;
-	
 }
 
