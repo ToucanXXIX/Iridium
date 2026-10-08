@@ -74,7 +74,7 @@ public:
 		moveVector *= 0.001f * dt;
 		pos += moveVector;
 		renderer->setCameraPos(pos);
-		std::this_thread::sleep_for(std::chrono::milliseconds(50)); // No sleep causes weird issue
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 
 	demo() : Iridium::application(getAppinfo()) {
