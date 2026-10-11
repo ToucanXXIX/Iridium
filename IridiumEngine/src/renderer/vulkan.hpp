@@ -6,86 +6,84 @@
 
 #include <vulkan/vulkan_core.h>
 
-namespace Iridium {
-	namespace Renderer {
-		struct renderer_error : public std::runtime_error {
-			renderer_error(const std::string& what);
-		};
-	}
+namespace Iridium::Renderer {
+	struct renderer_error : public std::runtime_error {
+		renderer_error(const std::string& what);
+	};
+}
 
-	namespace Vulkan {
-		//Vulkan lazy loaded functions
-		VkResult CreateDebugUtilsMessengerEXT(
-			VkInstance instance,
-			const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-			const VkAllocationCallbacks* pAllocator,
-			VkDebugUtilsMessengerEXT* pMessenger
-		);
+namespace Iridium::Vulkan {
+	//Vulkan lazy loaded functions
+	VkResult CreateDebugUtilsMessengerEXT(
+		VkInstance instance,
+		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+		const VkAllocationCallbacks* pAllocator,
+		VkDebugUtilsMessengerEXT* pMessenger
+	);
 
-		void DestroyDebugUtilsMessengerEXT(
-			VkInstance instance,
-			VkDebugUtilsMessengerEXT debugMessenger,
-			const VkAllocationCallbacks* pAllocator
-		);
+	void DestroyDebugUtilsMessengerEXT(
+		VkInstance instance,
+		VkDebugUtilsMessengerEXT debugMessenger,
+		const VkAllocationCallbacks* pAllocator
+	);
 
-		void CmdSetPolygonModeEXT(
-			VkInstance instance,
-			VkCommandBuffer commandBuffer,
-			VkPolygonMode polygonMode
-		);
+	void CmdSetPolygonModeEXT(
+		VkInstance instance,
+		VkCommandBuffer commandBuffer,
+		VkPolygonMode polygonMode
+	);
 
-		//Queue families
-		struct queue_family_indices {
-			enum family_type {
-				graphics = 0,
-				compute,
-				present,
-				transfer,
-				COUNT
-			};
-
-			uint32_t families[family_type::COUNT];
-			uint32_t presentFamilies;
-
-			void setFamily(family_type family, uint32_t index);
-			bool isFamilyPresent(family_type family) const;
-
-			bool isComplete() const;
-			bool isOneIndex() const;
+	//Queue families
+	struct queue_family_indices {
+		enum family_type {
+			graphics = 0,
+			compute,
+			present,
+			transfer,
+			COUNT
 		};
 
-		queue_family_indices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);		
+		uint32_t families[family_type::COUNT];
+		uint32_t presentFamilies;
 
-		//Extensions
-		std::vector<const char*> getRequiredExtensions();
-		const std::vector<const char*> getDeviceExtensions(VkPhysicalDevice device);
+		void setFamily(family_type family, uint32_t index);
+		bool isFamilyPresent(family_type family) const;
 
-		//Validation layers
-		const std::vector<const char*>& getValidationLayers();
-		bool checkValidationLayers();
+		bool isComplete() const;
+		bool isOneIndex() const;
+	};
 
-		//Swapchain
-		struct swapchain_support_details {
-			VkSurfaceCapabilitiesKHR capabilities;
-			std::vector<VkSurfaceFormatKHR> formats;
-			std::vector<VkPresentModeKHR> presentModes;
-		};
+	queue_family_indices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);		
 
-		swapchain_support_details querySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
-		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
-		VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow* window);
+	//Extensions
+	std::vector<const char*> getRequiredExtensions();
+	const std::vector<const char*> getDeviceExtensions(VkPhysicalDevice device);
 
-		//Device
-		bool isDeviceSuitable([[maybe_unused]] VkPhysicalDevice device);
+	//Validation layers
+	const std::vector<const char*>& getValidationLayers();
+	bool checkValidationLayers();
 
-		//Shader
-		VkShaderModule createShaderModule(const std::vector<uint32_t>& compiledShader, VkDevice device);
+	//Swapchain
+	struct swapchain_support_details {
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
+	};
 
-		//Depth
-		VkFormat findSupportedFormat(VkPhysicalDevice device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	swapchain_support_details querySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
+	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
+	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& presentModes);
+	VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow* window);
 
-		//misc
-		void populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
-	}
+	//Device
+	bool isDeviceSuitable([[maybe_unused]] VkPhysicalDevice device);
+
+	//Shader
+	VkShaderModule createShaderModule(const std::vector<uint32_t>& compiledShader, VkDevice device);
+
+	//Depth
+	VkFormat findSupportedFormat(VkPhysicalDevice device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+	//misc
+	void populateVkDeugUtilsMessengerCreateInfoEXT(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 }
