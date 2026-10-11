@@ -3,6 +3,8 @@
 #include <exception>
 #include <iterator>
 #include <ranges>
+#include <filesystem>
+
 #include <vulkan/vulkan_core.h>
 
 #include "appinfo.hpp"
@@ -18,6 +20,9 @@
 #include <Windows.h>
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
+#ifdef min
+#undef min
+#endif
 #endif
 
 namespace Ir = Iridium;
@@ -68,6 +73,8 @@ int main(int argc, char** argv) {
 	for(auto [index, option] : std::views::enumerate(span)) {
 		ENGINE_LOG_INFO_NP("#{} -> {}", index, option);
 	}
+
+	ENGINE_LOG_INFO("Current working directory: {}", std::filesystem::current_path().string());
 
 	try {
 		[[maybe_unused]] Iridium::application& app = createApp();

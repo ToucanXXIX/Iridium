@@ -112,6 +112,11 @@ target_link_libraries(IridiumEngine PRIVATE
     glslang-default-resource-limits
 )
 
+target_link_libraries(IridiumEngine PUBLIC
+	glm::glm
+	Vulkan::Vulkan
+)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	target_compile_options(IridiumEngine PRIVATE "-Wextra" "-Wall" "-Werror" "-Wpedantic" "-Wno-gnu-zero-variadic-macro-arguments")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

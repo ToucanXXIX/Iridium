@@ -58,7 +58,7 @@ namespace Iridium {
 
 		//Extensions
 		std::vector<const char*> getRequiredExtensions();
-		const std::vector<const char*>& getDeviceExtensions();
+		const std::vector<const char*> getDeviceExtensions(VkPhysicalDevice device);
 
 		//Validation layers
 		const std::vector<const char*>& getValidationLayers();
