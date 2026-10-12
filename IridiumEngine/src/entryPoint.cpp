@@ -49,6 +49,7 @@ void Ir::application::run() {
 	auto clock = std::chrono::high_resolution_clock();
 	while(!windowManager->windowShouldClose()) {
 		auto start = clock.now();
+		windowManager->pollEvents();
 		onTick(m_lastTickTime);
 		m_lastTickTime = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(clock.now() - start).count();
 	}

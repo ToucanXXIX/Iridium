@@ -2,14 +2,13 @@
 
 #include "appinfo.hpp"
 #include "entryPoint.hpp"
-#include "renderer/window.hpp"
 #include "inputHandler.hpp"
 #include "renderer/renderer.hpp"
 #include "utils.hpp"
 #include "log.hpp"
 
 //#include "glm/glm.hpp"
-
+auto t = sizeof(long double);
 
 class demo final : public Iridium::application {
 public:
@@ -24,25 +23,25 @@ public:
 		return info;
 	}
 
-	void onTick(float dt) override {		
-		windowManager->pollEvents();
+	void onTick(float dt) override {
 		glm::vec3 moveVector{};
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_W)) {
+		auto& inputHandler = *Iridium::getInputHandler();
+		if(inputHandler.isKeyPressed(Iridium::KEY_W)) {
 			moveVector += glm::vec3(1.0, 0.0, 0.0);
 		}
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_S)) {
+		if(inputHandler.isKeyPressed(Iridium::KEY_S)) {
 			moveVector += glm::vec3(-1.0, 0.0, 0.0);
 		}
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_A)) {
+		if(inputHandler.isKeyPressed(Iridium::KEY_A)) {
 			moveVector += glm::vec3(0.0, 1.0, 0.0);
 		}
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_D)) {
+		if(inputHandler.isKeyPressed(Iridium::KEY_D)) {
 			moveVector += glm::vec3(0.0, -1.0, 0.0);
 		}
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_SPACE)) {
+		if(inputHandler.isKeyPressed(Iridium::KEY_SPACE)) {
 			moveVector += glm::vec3(0.0, 0.0, 1.0);
 		}
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_RCONTROL) || Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_LCONTROL)) {
+		if(inputHandler.isKeyPressed(Iridium::KEY_RCONTROL) || inputHandler.isKeyPressed(Iridium::KEY_LCONTROL)) {
 			moveVector += glm::vec3(0.0, 0.0, -1.0);
 		}
 		if(glm::length(moveVector)) {
@@ -50,7 +49,7 @@ public:
 		}
 
 		static bool heldR = false;
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_R)) {
+		if(inputHandler.isKeyPressed(Iridium::KEY_R)) {
 			if(!heldR)
 				renderer->drawWireframe = !renderer->drawWireframe;
 			heldR = true;
@@ -59,9 +58,9 @@ public:
 		}
 
 		static bool heldEnt = false;
-		if(Iridium::getInputHandler()->isKeyPressed(Iridium::KEY_ENTER)) {
+		if(inputHandler.isKeyPressed(Iridium::KEY_ENTER)) {
 			if(!heldEnt) {
-				auto unicodeText = Iridium::getInputHandler()->getTextInputAndClear();
+				auto unicodeText = inputHandler.getTextInputAndClear();
 				std::vector<char> utf8Text = Iridium::unicodeToUTF8(unicodeText);
 				utf8Text.push_back('\0');
 				ENGINE_LOG_ERROR("{}", (char*)utf8Text.data());
