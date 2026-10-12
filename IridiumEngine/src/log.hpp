@@ -32,33 +32,31 @@
 
 #endif
 
-namespace Iridium {
-	namespace Logger {
-		enum severity : uint8_t {
-			INFO,
-			WARN,
-			ERR,
-			FATAL
-		};
+namespace Iridium::Logger {
+	enum severity : uint8_t {
+		INFO,
+		WARN,
+		ERR,
+		FATAL
+	};
 
-		enum empty_prefix{};
+	enum empty_prefix{};
 
-		std::string getTimestamp();
-		std::string getPrefix(severity level);
-		std::string getPrefix(severity level, empty_prefix);
+	std::string getTimestamp();
+	std::string getPrefix(severity level);
+	std::string getPrefix(severity level, empty_prefix);
 
-		template<typename... Args>
-		void log(severity level, std::format_string<Args...> fmt, Args&&... args) {
-			std::string prefix = getPrefix(level);
-			std::string message = std::format(fmt, std::forward<Args>(args)...);
-			std::println("{}: {}" "\033[0m", prefix, message);
-		}
+	template<typename... Args>
+	void log(severity level, std::format_string<Args...> fmt, Args&&... args) {
+		std::string prefix = getPrefix(level);
+		std::string message = std::format(fmt, std::forward<Args>(args)...);
+		std::println("{}: {}" "\033[0m", prefix, message);
+	}
 
-		template<typename... Args>
-		void logNP(severity level, std::format_string<Args...> fmt, Args&&... args) {
-			std::string prefix = getPrefix(level, empty_prefix());
-			std::string message = std::format(fmt, std::forward<Args>(args)...);
-			std::println("{}| {}" "\033[0m", prefix, message);
-		}
+	template<typename... Args>
+	void logNP(severity level, std::format_string<Args...> fmt, Args&&... args) {
+		std::string prefix = getPrefix(level, empty_prefix());
+		std::string message = std::format(fmt, std::forward<Args>(args)...);
+		std::println("{}| {}" "\033[0m", prefix, message);
 	}
 }

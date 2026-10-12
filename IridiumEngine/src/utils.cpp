@@ -1,13 +1,14 @@
 #include "utils.hpp"
 
+#include <vector>
+
 #include "entryPoint.hpp"
 
-namespace Iridium {
-	namespace Impl { // TODO(): this could probably be wrapped in an atomic or have
+namespace Iridium::Impl { // TODO(): this could probably be wrapped in an atomic or have
 	                 // a mutex.
 		static application *g_applicationPointer = nullptr;
 	}
-} // namespace Iridium
+
 
 Iridium::application* Iridium::getApplicationPointer() {
 	return Iridium::Impl::g_applicationPointer;

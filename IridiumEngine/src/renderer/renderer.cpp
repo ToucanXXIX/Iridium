@@ -200,7 +200,7 @@ void Iridium::Renderer::renderer::createLogicalDevice() {
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.fillModeNonSolid = VK_TRUE;
 
-	auto& deviceExtensions = Iridium::Vulkan::getDeviceExtensions();
+	auto deviceExtensions = Iridium::Vulkan::getDeviceExtensions(m_physicalDevice);
 
 	//TODO(): move this to separate function to make the chain automatically.
 	VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3{};

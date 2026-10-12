@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <ranges>
 
 #include <vulkan/vulkan_core.h>
 
@@ -25,7 +26,7 @@ IrR::renderer_error::renderer_error(const std::string& what) : std::runtime_erro
 //Constants
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation",
-	"VK_LAYER_MESA_overlay"
+	//"VK_LAYER_MESA_overlay"
 };
 
 const std::vector<const char*> instanceExtensions = {
@@ -35,7 +36,7 @@ const std::vector<const char*> instanceExtensions = {
 
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	"VK_EXT_swapchain_maintenance1", // ditto as above
+	"VK_KHR_swapchain_maintenance1", // ditto as above
 	"VK_EXT_extended_dynamic_state3",
 	VK_EXT_SHADER_OBJECT_EXTENSION_NAME
 };
@@ -192,8 +193,27 @@ std::vector<const char*> IrV::getRequiredExtensions() {
 	return extensions;
 }
 
-const std::vector<const char*>& IrV::getDeviceExtensions() {
-	return deviceExtensions;
+const std::vector<const char*> IrV::getDeviceExtensions(VkPhysicalDevice device) {
+	std::vector<const char*> deviceExtensions1{};
+	uint32_t presentDeviceExtensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &presentDeviceExtensionCount, nullptr);
+	std::vector<VkExtensionProperties> presentExtensions(presentDeviceExtensionCount);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &presentDeviceExtensionCount, presentExtensions.data());
+	for(const auto& extension : presentExtensions) {
+		std::string_view extensionName(extension.extensionName);
+		if(extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME) {
+			deviceExtensions1.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		} else if(extensionName == "VK_KHR_swapchain_maintenance1") {
+			deviceExtensions1.push_back("VK_KHR_swapchain_maintenance1");
+		} else if (extensionName == "VK_EXT_swapchain_maintenance1") {
+			deviceExtensions1.push_back("VK_EXT_swapchain_maintenance1");
+		} else if(extensionName == "VK_EXT_extended_dynamic_state3") {
+			deviceExtensions1.push_back("VK_EXT_extended_dynamic_state3");
+		} else if(extensionName == VK_EXT_SHADER_OBJECT_EXTENSION_NAME) {
+			deviceExtensions1.push_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+		}
+	}
+	return deviceExtensions1;
 }
 
 //Validation layers
