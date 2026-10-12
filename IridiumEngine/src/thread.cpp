@@ -1,6 +1,8 @@
 #include "thread.hpp"
 
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 static thread_local std::string g_threadName{"none"};
 
