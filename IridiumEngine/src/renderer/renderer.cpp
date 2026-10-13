@@ -212,10 +212,15 @@ void Iridium::Renderer::renderer::createLogicalDevice() {
 	swapchainMaintenance1.swapchainMaintenance1 = VK_TRUE; // fencing on images
 	swapchainMaintenance1.pNext = &extendedDynamicState3;
 
-	VkPhysicalDeviceShaderObjectFeaturesEXT shaderObject{};
+	VkPhysicalDeviceShaderObjectFeaturesEXT shaderObject{}; //dynamic shader binding
 	shaderObject.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
 	shaderObject.shaderObject = VK_TRUE;
 	shaderObject.pNext = &swapchainMaintenance1;
+
+	VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRendering{}; //dynamic rendering
+	dynamicRendering.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+	dynamicRendering.dynamicRendering = VK_TRUE;
+	dynamicRendering.pNext = &shaderObject;
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

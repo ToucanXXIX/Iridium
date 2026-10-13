@@ -211,8 +211,15 @@ const std::vector<const char*> IrV::getDeviceExtensions(VkPhysicalDevice device)
 			deviceExtensions1.push_back("VK_EXT_extended_dynamic_state3");
 		} else if(extensionName == VK_EXT_SHADER_OBJECT_EXTENSION_NAME) {
 			deviceExtensions1.push_back(VK_EXT_SHADER_OBJECT_EXTENSION_NAME);
+		} else if(extensionName == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) {
+			deviceExtensions1.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 		}
 	}
+	ENGINE_LOG_WARN("Active device extensions: ");
+	for(const auto& extension : deviceExtensions1) {
+		ENGINE_LOG_WARN_NP("-> {}", extension);
+	}
+
 	return deviceExtensions1;
 }
 
