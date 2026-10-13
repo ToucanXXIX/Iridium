@@ -12,7 +12,7 @@ auto t = sizeof(long double);
 
 class demo final : public Iridium::application {
 public:
-	glm::vec3 pos{};
+	glm::vec3 pos{-2.5f, 0.0f, 1.0f};
 	size_t counter = 0;
 
 	Iridium::appinfo& getAppinfo() override {

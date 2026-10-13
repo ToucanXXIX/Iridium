@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 #include <chrono>
-#include <ranges>
 
 #include <vulkan/vulkan_core.h>
 

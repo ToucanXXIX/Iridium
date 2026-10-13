@@ -54,7 +54,7 @@ find_package(Python3 REQUIRED)
 FetchContent_Declare(
 	glslang
 	GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
-	GIT_TAG main
+	GIT_TAG e1b562a8bed273a02f30b59b66a5d499793cede5
 )
 set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Disable glslang command-line tools")
 set(ENABLE_OPT ON CACHE BOOL "enable SPIR-V opt")
