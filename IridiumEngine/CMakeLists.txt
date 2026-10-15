@@ -57,6 +57,7 @@ FetchContent_Declare(
 	GIT_TAG e1b562a8bed273a02f30b59b66a5d499793cede5
 )
 set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "Disable glslang command-line tools")
+set(SPIRV_SKIP_EXECUTABLES ON CACHE BOOL "Skip building unneeded binaries")
 set(ENABLE_OPT ON CACHE BOOL "enable SPIR-V opt")
 
 FetchContent_Populate(glslang)

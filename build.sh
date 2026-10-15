@@ -8,7 +8,7 @@ mkdir ./builds/Debug
 
 cmake -S . -B builds/Debug -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 cp builds/Debug/compile_commands.json compile_commands.json
-cmake --build builds/Debug --parallel
+cmake --build builds/Debug --parallel=8
 
 #cmake ../.. -DCMAKE_BUILD_TYPE=Debug
 #cp compile_commands.json ../../compile_commands.json
