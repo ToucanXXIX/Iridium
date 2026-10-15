@@ -25,7 +25,9 @@ IrR::renderer_error::renderer_error(const std::string& what) : std::runtime_erro
 //Constants
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation",
-	//"VK_LAYER_MESA_overlay"
+#ifndef _WIN32
+	"VK_LAYER_MESA_overlay"
+#endif
 };
 
 const std::vector<const char*> instanceExtensions = {
